@@ -2,7 +2,8 @@ import pygame
 frame_count = 0
 # Initialize Pygame
 pygame.init()
-
+# Background Variables
+christmas = 1;
 # Set up the screen
 screen_width = 800
 screen_height = 600
@@ -62,6 +63,8 @@ def handle_input_events():
                 move_up = True
             elif event.key == pygame.K_s:
                 move_down = True
+            elif event.key == pygame.K_SPACE:
+                update_background()
         elif event.type == pygame.KEYUP:
             if event.key == pygame.K_a:
                 move_left = False
@@ -74,13 +77,12 @@ def handle_input_events():
 
 
 # Define a function to update the game state
-# Define a function to update the game state
-# Define a function to update the game state
 def update():
     global player_x, player_y, current_sprites, current_sprite_index, frame_count, background_image, background_rect, background_frame_index
 
     # Update the player position based on movement keys
     move_vector = pygame.math.Vector2(0, 0)
+
     if move_left:
         move_vector.x -= movement_speed
     if move_right:
@@ -107,14 +109,13 @@ def update():
             current_sprite_index = 0
 
     # Update the background image
-    if frame_count % 10 == 0:
+    if frame_count % 10 == 0 and christmas == 1:
         background_frame_index += 1
         if background_frame_index >= len(background_frames):
             background_frame_index = 0
         background_image = pygame.transform.scale(background_frames[background_frame_index], (screen_width, screen_height))
 
     screen.blit(background_image, (0, 0))
-
 # Define a function to draw the game objects
 def draw():
     global background_image, background_rect
@@ -127,6 +128,14 @@ def draw():
         screen.blit(current_sprites[current_sprite_index], (player_x, player_y))
     pygame.display.update()
 
+
+def update_background():
+    global background_image, background_rect, christmas
+    # Load the new background image
+    christmas = 0
+    background_image = pygame.image.load("resources/backdrop/test/frame0.png").convert()
+    background_image = pygame.transform.scale(background_image, (screen_width, screen_height))
+    background_rect = background_image.get_rect()
 # Start the game loop
 while True:
     # Handle input events
@@ -143,3 +152,4 @@ while True:
 
 # Quit Pygame
 pygame.quit()
+
