@@ -45,6 +45,24 @@ background_speed = 1
 background_image = pygame.transform.scale(pygame.image.load('resources/backdrop/christmas/frame0.gif'), (screen_width, screen_height))
 background_rect = background_image.get_rect()
 
+# Nested list for determing walkable area in test
+ROWS = 12
+COLS = 12
+walkable_tiles = [
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0],
+    [0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0],
+    [0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0],
+    [0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0],
+    [1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+]
+
 # Define a function to handle input events
 def handle_input_events():
     global move_left, move_right, move_up, move_down, last_direction
@@ -94,9 +112,28 @@ def update():
     if move_vector.length() > 0:
         move_vector.normalize_ip()
         move_vector *= movement_speed
-        player_x += move_vector.x
-        player_y += move_vector.y
-        current_sprites = moving_sprites
+
+        # Check if the player can move to the target tile
+        target_x = player_x + move_vector.x
+        target_y = player_y + move_vector.y
+        tile_size_x = int(screen_width / COLS)
+        tile_size_y = int(screen_height / ROWS)
+        player_tile_x = int(player_x / tile_size_x)
+        player_tile_y = int(player_y / tile_size_y)
+        target_tile_x = int(target_x / tile_size_x)
+        target_tile_y = int(target_y / tile_size_y)
+
+        if target_tile_x < 0 or target_tile_x >= COLS or target_tile_y < 0 or target_tile_y >= ROWS:
+            # Player is trying to move outside the map boundaries
+            current_sprites = idle_sprites
+        elif walkable_tiles[target_tile_y][target_tile_x] == 1:
+            # Player can move to the target tile
+            player_x += move_vector.x
+            player_y += move_vector.y
+            current_sprites = moving_sprites
+        else:
+            # Player cannot move to the target tile
+            current_sprites = idle_sprites
     else:
         current_sprites = idle_sprites
 
@@ -116,7 +153,9 @@ def update():
         background_image = pygame.transform.scale(background_frames[background_frame_index], (screen_width, screen_height))
 
     screen.blit(background_image, (0, 0))
-# Define a function to draw the game objects
+
+
+
 def draw():
     global background_image, background_rect
     #screen.fill((255, 255, 255))
@@ -152,4 +191,3 @@ while True:
 
 # Quit Pygame
 pygame.quit()
-
