@@ -1,5 +1,6 @@
 import pygame
 frame_count = 0
+show_walkable = 0
 # Initialize Pygame
 pygame.init()
 # Background Variables
@@ -50,11 +51,11 @@ ROWS = 12
 COLS = 12
 walkable_tiles = [
     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0],
-    [0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0],
-    [0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0],
-    [0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0],
-    [1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0],
+    [0, 0, 0, 0, 1, 1, 1, 0, 1, 1, 1, 0],
+    [0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0],
+    [1, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0],
     [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
     [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
     [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
@@ -97,7 +98,8 @@ def handle_input_events():
 # Define a function to update the game state
 def update():
     global player_x, player_y, current_sprites, current_sprite_index, frame_count, background_image, background_rect, background_frame_index
-
+    tile_size_x = int(screen_width / COLS)
+    tile_size_y = int(screen_height / ROWS)
     # Update the player position based on movement keys
     move_vector = pygame.math.Vector2(0, 0)
 
@@ -109,31 +111,37 @@ def update():
         move_vector.y -= movement_speed
     if move_down:
         move_vector.y += movement_speed
+
     if move_vector.length() > 0:
+        # Normalize the vector to get a unit vector
         move_vector.normalize_ip()
-        move_vector *= movement_speed
 
-        # Check if the player can move to the target tile
-        target_x = player_x + move_vector.x
-        target_y = player_y + move_vector.y
+        # Move the player in the x direction
+        player_x += move_vector.x * movement_speed
         tile_size_x = int(screen_width / COLS)
-        tile_size_y = int(screen_height / ROWS)
         player_tile_x = int(player_x / tile_size_x)
-        player_tile_y = int(player_y / tile_size_y)
-        target_tile_x = int(target_x / tile_size_x)
-        target_tile_y = int(target_y / tile_size_y)
+        if player_tile_x < 0 or player_tile_x >= COLS or not walkable_tiles[int(player_y / tile_size_y)][player_tile_x]:
+            # Player cannot move in the x direction, so revert the movement and set idle sprites
+            player_x -= move_vector.x * movement_speed
+            move_vector.x = 0
+            current_sprites = idle_sprites
 
-        if target_tile_x < 0 or target_tile_x >= COLS or target_tile_y < 0 or target_tile_y >= ROWS:
-            # Player is trying to move outside the map boundaries
+        # Move the player in the y direction
+        player_y += move_vector.y * movement_speed
+        tile_size_y = int(screen_height / ROWS)
+        player_tile_y = int(player_y / tile_size_y)
+        if player_tile_y < 0 or player_tile_y >= ROWS or not walkable_tiles[player_tile_y][int(player_x / tile_size_x)]:
+            # Player cannot move in the y direction, so revert the movement and set idle sprites
+            player_y -= move_vector.y * movement_speed
+            move_vector.y = 0
             current_sprites = idle_sprites
-        elif walkable_tiles[target_tile_y][target_tile_x] == 1:
-            # Player can move to the target tile
-            player_x += move_vector.x
-            player_y += move_vector.y
-            current_sprites = moving_sprites
+
+        # Update the sprites based on the direction of movement
+        if move_vector.x == 0 and move_vector.y == 0:
+            current_sprites = idle_sprites
         else:
-            # Player cannot move to the target tile
-            current_sprites = idle_sprites
+            current_sprites = moving_sprites
+
     else:
         current_sprites = idle_sprites
 
