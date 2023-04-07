@@ -59,7 +59,7 @@ walkable_tiles = [
     [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
     [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
     [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
-    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+    [1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 0],
     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 ]
@@ -102,7 +102,11 @@ def update():
     tile_size_y = int(screen_height / ROWS)
     # Update the player position based on movement keys
     move_vector = pygame.math.Vector2(0, 0)
-
+    player_tile_x = int(player_x / tile_size_x)
+    player_tile_y = int(player_y / tile_size_y)
+    if player_tile_x >= 0 and player_tile_x < COLS and player_tile_y >= 0 and player_tile_y < ROWS:
+        if walkable_tiles[player_tile_y][player_tile_x] == 2:
+            update_background()
     if move_left:
         move_vector.x -= movement_speed
     if move_right:
