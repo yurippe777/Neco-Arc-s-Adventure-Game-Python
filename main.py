@@ -1,8 +1,10 @@
 import pygame
 frame_count = 0
+show_walkable = 0
 # Initialize Pygame
 pygame.init()
-
+# Background Variables
+christmas = 1;
 # Set up the screen
 screen_width = 800
 screen_height = 600
@@ -44,6 +46,24 @@ background_speed = 1
 background_image = pygame.transform.scale(pygame.image.load('resources/backdrop/christmas/frame0.gif'), (screen_width, screen_height))
 background_rect = background_image.get_rect()
 
+# Nested list for determing walkable area in test
+ROWS = 12
+COLS = 12
+walkable_tiles = [
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0],
+    [0, 0, 0, 0, 1, 1, 1, 0, 1, 1, 1, 0],
+    [0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0],
+    [1, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0],
+    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+    [1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+]
+
 # Define a function to handle input events
 def handle_input_events():
     global move_left, move_right, move_up, move_down, last_direction
@@ -62,6 +82,8 @@ def handle_input_events():
                 move_up = True
             elif event.key == pygame.K_s:
                 move_down = True
+            elif event.key == pygame.K_SPACE:
+                update_background()
         elif event.type == pygame.KEYUP:
             if event.key == pygame.K_a:
                 move_left = False
@@ -74,13 +96,17 @@ def handle_input_events():
 
 
 # Define a function to update the game state
-# Define a function to update the game state
-# Define a function to update the game state
 def update():
     global player_x, player_y, current_sprites, current_sprite_index, frame_count, background_image, background_rect, background_frame_index
-
+    tile_size_x = int(screen_width / COLS)
+    tile_size_y = int(screen_height / ROWS)
     # Update the player position based on movement keys
     move_vector = pygame.math.Vector2(0, 0)
+    player_tile_x = int(player_x / tile_size_x)
+    player_tile_y = int(player_y / tile_size_y)
+    if player_tile_x >= 0 and player_tile_x < COLS and player_tile_y >= 0 and player_tile_y < ROWS:
+        if walkable_tiles[player_tile_y][player_tile_x] == 2:
+            update_background()
     if move_left:
         move_vector.x -= movement_speed
     if move_right:
@@ -89,12 +115,37 @@ def update():
         move_vector.y -= movement_speed
     if move_down:
         move_vector.y += movement_speed
+
     if move_vector.length() > 0:
+        # Normalize the vector to get a unit vector
         move_vector.normalize_ip()
-        move_vector *= movement_speed
-        player_x += move_vector.x
-        player_y += move_vector.y
-        current_sprites = moving_sprites
+
+        # Move the player in the x direction
+        player_x += move_vector.x * movement_speed
+        tile_size_x = int(screen_width / COLS)
+        player_tile_x = int(player_x / tile_size_x)
+        if player_tile_x < 0 or player_tile_x >= COLS or not walkable_tiles[int(player_y / tile_size_y)][player_tile_x]:
+            # Player cannot move in the x direction, so revert the movement and set idle sprites
+            player_x -= move_vector.x * movement_speed
+            move_vector.x = 0
+            current_sprites = idle_sprites
+
+        # Move the player in the y direction
+        player_y += move_vector.y * movement_speed
+        tile_size_y = int(screen_height / ROWS)
+        player_tile_y = int(player_y / tile_size_y)
+        if player_tile_y < 0 or player_tile_y >= ROWS or not walkable_tiles[player_tile_y][int(player_x / tile_size_x)]:
+            # Player cannot move in the y direction, so revert the movement and set idle sprites
+            player_y -= move_vector.y * movement_speed
+            move_vector.y = 0
+            current_sprites = idle_sprites
+
+        # Update the sprites based on the direction of movement
+        if move_vector.x == 0 and move_vector.y == 0:
+            current_sprites = idle_sprites
+        else:
+            current_sprites = moving_sprites
+
     else:
         current_sprites = idle_sprites
 
@@ -107,7 +158,7 @@ def update():
             current_sprite_index = 0
 
     # Update the background image
-    if frame_count % 10 == 0:
+    if frame_count % 10 == 0 and christmas == 1:
         background_frame_index += 1
         if background_frame_index >= len(background_frames):
             background_frame_index = 0
@@ -115,7 +166,8 @@ def update():
 
     screen.blit(background_image, (0, 0))
 
-# Define a function to draw the game objects
+
+
 def draw():
     global background_image, background_rect
     #screen.fill((255, 255, 255))
@@ -127,6 +179,14 @@ def draw():
         screen.blit(current_sprites[current_sprite_index], (player_x, player_y))
     pygame.display.update()
 
+
+def update_background():
+    global background_image, background_rect, christmas
+    # Load the new background image
+    christmas = 0
+    background_image = pygame.image.load("resources/backdrop/test/frame0.png").convert()
+    background_image = pygame.transform.scale(background_image, (screen_width, screen_height))
+    background_rect = background_image.get_rect()
 # Start the game loop
 while True:
     # Handle input events
