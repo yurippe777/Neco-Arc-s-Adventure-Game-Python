@@ -4,7 +4,7 @@ show_walkable = 0
 # Initialize Pygame
 pygame.init()
 # Background Variables
-christmas = 1;
+current_map = 'christmas'
 # Set up the screen
 screen_width = 800
 screen_height = 600
@@ -46,7 +46,7 @@ background_speed = 1
 background_image = pygame.transform.scale(pygame.image.load('resources/backdrop/christmas/frame0.gif'), (screen_width, screen_height))
 background_rect = background_image.get_rect()
 
-# Nested list for determing walkable area in test
+# Nested list for determining walkable area in test
 ROWS = 12
 COLS = 12
 walkable_tiles = [
@@ -83,7 +83,7 @@ def handle_input_events():
             elif event.key == pygame.K_s:
                 move_down = True
             elif event.key == pygame.K_SPACE:
-                update_background()
+                hub_teleport()
         elif event.type == pygame.KEYUP:
             if event.key == pygame.K_a:
                 move_left = False
@@ -98,6 +98,7 @@ def handle_input_events():
 # Define a function to update the game state
 def update():
     global player_x, player_y, current_sprites, current_sprite_index, frame_count, background_image, background_rect, background_frame_index
+    global current_map
     tile_size_x = int(screen_width / COLS)
     tile_size_y = int(screen_height / ROWS)
     # Update the player position based on movement keys
@@ -106,7 +107,9 @@ def update():
     player_tile_y = int(player_y / tile_size_y)
     if player_tile_x >= 0 and player_tile_x < COLS and player_tile_y >= 0 and player_tile_y < ROWS:
         if walkable_tiles[player_tile_y][player_tile_x] == 2:
-            update_background()
+            if (current_map == 'christmas'): hub_teleport()
+            elif (current_map == 'hub' and player_y <200): house_teleport()
+            elif (current_map == 'hub' and player_y > 200):city_teleport()
     if move_left:
         move_vector.x -= movement_speed
     if move_right:
@@ -158,7 +161,7 @@ def update():
             current_sprite_index = 0
 
     # Update the background image
-    if frame_count % 10 == 0 and christmas == 1:
+    if frame_count % 10 == 0 and current_map == 'christmas':
         background_frame_index += 1
         if background_frame_index >= len(background_frames):
             background_frame_index = 0
@@ -180,14 +183,72 @@ def draw():
     pygame.display.update()
 
 
-def update_background():
-    global background_image, background_rect, christmas
+def hub_teleport():
+    global background_image, background_rect, walkable_tiles, player_x, player_y,current_map
     # Load the new background image
-    christmas = 0
-    background_image = pygame.image.load("resources/backdrop/test/frame0.png").convert()
+    current_map = 'hub'
+    background_image = pygame.image.load("resources/backdrop/hub/frame0.png").convert()
     background_image = pygame.transform.scale(background_image, (screen_width, screen_height))
     background_rect = background_image.get_rect()
+    walkable_tiles = [
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+        [1, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+        [2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+    ]
+    player_x = 75
+    player_y = 110
 # Start the game loop
+def house_teleport():
+    global background_image, background_rect, walkable_tiles, player_x, player_y,current_map
+    # Load the new background image
+    current_map = 'christmas'
+    walkable_tiles = [
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0],
+        [0, 0, 0, 0, 1, 1, 1, 0, 1, 1, 1, 0],
+        [0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0],
+        [1, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0],
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+        [1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    ]
+    player_x = 300
+    player_y = 380
+def city_teleport():
+    global background_image, background_rect, walkable_tiles, player_x, player_y, current_map
+    current_map = 'city'
+    background_image = pygame.image.load("resources/backdrop/city/frame0.gif").convert()
+    background_image = pygame.transform.scale(background_image, (screen_width, screen_height))
+    background_rect = background_image.get_rect()
+    walkable_tiles = [
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+    ]
+    player_x = 700
+
 while True:
     # Handle input events
     handle_input_events()
