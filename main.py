@@ -75,8 +75,9 @@ def handle_input_events():
 
 # Define a function to update the game state
 # Define a function to update the game state
+# Define a function to update the game state
 def update():
-    global player_x, player_y, current_sprites, current_sprite_index, frame_count, background_image, background_rect
+    global player_x, player_y, current_sprites, current_sprite_index, frame_count, background_image, background_rect, background_frame_index
 
     # Update the player position based on movement keys
     move_vector = pygame.math.Vector2(0, 0)
@@ -106,10 +107,13 @@ def update():
             current_sprite_index = 0
 
     # Update the background image
-   # background_rect.x -= 1
-    #if background_rect.x < -screen_width:
-     #   background_rect.x = 0
-    screen.blit(background_image, background_rect)
+    if frame_count % 10 == 0:
+        background_frame_index += 1
+        if background_frame_index >= len(background_frames):
+            background_frame_index = 0
+        background_image = pygame.transform.scale(background_frames[background_frame_index], (screen_width, screen_height))
+
+    screen.blit(background_image, (0, 0))
 
 # Define a function to draw the game objects
 def draw():
