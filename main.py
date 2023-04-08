@@ -1,3 +1,5 @@
+import os
+
 import pygame
 import math
 import json
@@ -9,6 +11,26 @@ interaction = 0
 game_state = False
 # Initialize Pygame
 pygame.init()
+# Check if quest_flags.txt exists
+if os.path.isfile("quest_flags.txt"):
+    # Load quest flags from file
+    with open("quest_flags.txt", "r") as f:
+        quest_flags = json.load(f)
+else:
+    # Create quest_flags.txt and initialize all flags to false
+    quest_flags = {"Knight of Honor": False, "Placeholder": False, "Placeholder 2": False}
+    with open("quest_flags.txt", "w") as f:
+        json.dump(quest_flags, f)
+
+if os.path.isfile("inventory.txt"):
+    # Load inventory from file
+    with open("inventory.txt", "r") as f:
+        inventory = json.load(f)
+else:
+    # Create inventory.txt and initialize all items to false
+    inventory = {"Excalibur": False, "Bombs": False, "Placeholder3": False}
+    with open("inventory.txt", "w") as f:
+        json.dump(inventory, f)
 # Background Variables
 current_map = 'christmas'
 # Set up the screen
@@ -233,7 +255,9 @@ def draw():
 def rabbit_interact():
     quit()
 def knight_interact():
-    pause_menu()
+    global quest_flags
+
+
 
 flip_status = False
 
@@ -322,6 +346,9 @@ def pause_menu():
                             json.dump(quest_flags, f)
                     elif selected_option == 2:
                         print("Starting new game...")
+                        quest_flags = {"Knight of Honor": False}
+                        inventory = {"Excalibur": False, "Bombs": False}
+
 
         # Clear the screen
        # screen.fill((0, 0, 0))
