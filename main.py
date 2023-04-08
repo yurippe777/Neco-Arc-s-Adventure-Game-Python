@@ -1,8 +1,12 @@
 import pygame
 import math
+import json
+import random
+flip_status = False
 frame_count = 0
 show_walkable = 0
 interaction = 0
+game_state = False
 # Initialize Pygame
 pygame.init()
 # Background Variables
@@ -26,6 +30,10 @@ moving_sprites = [pygame.transform.scale(pygame.image.load('resources/moving/fra
                   pygame.transform.scale(pygame.image.load('resources/moving/frame3.gif'), (120, 120))]
 background_frames = [pygame.image.load(f'resources/backdrop/christmas/frame{i}.gif') for i in range(5)]
 background_frames2 = [pygame.image.load(f'resources/backdrop/graveyard/frame_{i}.gif') for i in range(4)]
+knight_idle = [pygame.transform.scale(pygame.image.load('resources/npc/knight_idle/frame0.gif'), (250, 250)),
+               pygame.transform.scale(pygame.image.load('resources/npc/knight_idle/frame1.gif'), (250, 250)),
+               pygame.transform.scale(pygame.image.load('resources/npc/knight_idle/frame2.gif'), (250, 250)),
+               pygame.transform.scale(pygame.image.load('resources/npc/knight_idle/frame3.gif'), (250, 250)),]
 
 
 
@@ -67,9 +75,21 @@ walkable_tiles = [
     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 ]
+try:
+    with open("inventory.txt", "r") as f:
+        inventory = json.load(f)
+except FileNotFoundError:
+    inventory = {}
+
+try:
+    with open("quest_flags.txt", "r") as f:
+        quest_flags = json.load(f)
+except FileNotFoundError:
+    quest_flags = {}
+
 # Define a function to handle input events
 def handle_input_events():
-    global move_left, move_right, move_up, move_down, last_direction, current_map, interaction
+    global move_left, move_right, move_up, move_down, last_direction, current_map, interaction, game_state
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             pygame.quit()
@@ -87,8 +107,12 @@ def handle_input_events():
                 move_down = True
             elif event.key == pygame.K_SPACE:
                 pass
-            elif event.key == pygame.K_e and interaction == 1:
+            elif event.key == pygame.K_e and interaction == 1 and current_map == 'hub':
                 rabbit_interact()
+            elif event.key == pygame.K_e and interaction == 1 and current_map == 'city':
+                knight_interact()
+            elif event.key == pygame.K_ESCAPE:
+                pause_menu()
         elif event.type == pygame.KEYUP:
             if event.key == pygame.K_a:
                 move_left = False
@@ -189,15 +213,48 @@ def update():
     screen.blit(background_image, (0, 0))
 
 
-def draw():
-    global background_image, bunny, interaction
 
+def draw():
+    global background_image, bunny, interaction, game_state, current_map,knight_idle, npc_locations
+    bunny_y = 330 + 5 * math.sin(pygame.time.get_ticks() / 200)
     if current_map == 'hub':
-        bunny_y = 330 + 5 * math.sin(pygame.time.get_ticks() / 200)
-        screen.blit(bunny, (440, bunny_y))
+        npc_maker(440,bunny_y,bunny)
+    if current_map == 'city':
+        npc_maker(50,350,knight_idle)
+    if last_direction == "left":
+        # Flip the sprite horizontally
+        flipped_sprite = pygame.transform.flip(current_sprites[current_sprite_index], True, False)
+        screen.blit(flipped_sprite, (player_x, player_y))
+    else:
+        screen.blit(current_sprites[current_sprite_index], (player_x, player_y))
+
+    pygame.display.update()
+
+def rabbit_interact():
+    quit()
+def knight_interact():
+    pause_menu()
+
+flip_status = False
+
+def npc_maker(bunny_x, bunny_y, images):
+    global background_image, interaction, player_x, player_y, flip_status, current_map
+
+    if current_map == 'hub' or current_map == 'city':
+        if isinstance(images, list):
+            image_index = pygame.time.get_ticks() // 200 % len(images)  # Change image every 5 frames (200 milliseconds)
+            image = images[image_index]
+            if flip_status:
+                image = pygame.transform.flip(image, True, False)  # Flip the image if flip_status is True
+        else:
+            image = images
+            if flip_status:
+                image = pygame.transform.flip(image, True, False)  # Flip the image if flip_status is True
+
+        screen.blit(image, (bunny_x, bunny_y))
 
         # Check if player is near bunny
-        if abs(player_x - 440) < 50 and abs(player_y - bunny_y) < 50:
+        if abs(player_x - bunny_x) < 50 and abs(player_y - bunny_y) < 50:
             # Draw "Press E to interact" message above player's head
             font = pygame.font.Font(None, 25)
             text = "Press E to interact"
@@ -219,19 +276,73 @@ def draw():
             # Set interaction to 0
             interaction = 0
 
-    if last_direction == "left":
-        # Flip the sprite horizontally
-        flipped_sprite = pygame.transform.flip(current_sprites[current_sprite_index], True, False)
-        screen.blit(flipped_sprite, (player_x, player_y))
-    else:
-        screen.blit(current_sprites[current_sprite_index], (player_x, player_y))
+        # Flip the image randomly
+        if pygame.time.get_ticks() // 1000 % 3 == 0 and random.random() < 0.01 and current_map == 'city':
+            flip_status = not flip_status  # Invert the flip status
 
-    pygame.display.update()
+def pause_menu():
+    global game_state, inventory, quest_flags
 
-def rabbit_interact():
-    quit()
+    # Set game state to paused
+    game_state = False
 
+    # Create a list of menu options
+    menu_options = ["Inventory", "Save", "New Game"]
+    selected_option = 0
+    backdrop = pygame.image.load('resources/backdrop/loading/frame0.png')
+    screen.blit(backdrop, (0, 0))
+    while True:
+        # Handle input events
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                quit()
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    # Resume the game and return from the function
+                    game_state = True
+                    return
+                elif event.key == pygame.K_w:
+                    # Move the selection up
+                    selected_option = (selected_option - 1) % len(menu_options)
+                    screen.blit(backdrop, (0, 0))
+                elif event.key == pygame.K_s:
+                    # Move the selection down
+                    selected_option = (selected_option + 1) % len(menu_options)
+                    screen.blit(backdrop, (0, 0))
+                elif event.key == pygame.K_RETURN or event.key == pygame.K_SPACE:
+                    # Execute the selected option
+                    if selected_option == 0:
+                        print("Opening inventory...")
+                    elif selected_option == 1:
+                        print("Saving game...")
+                        with open("inventory.txt", "w") as f:
+                            json.dump(inventory, f)
+                        with open("quest_flags.txt", "w") as f:
+                            json.dump(quest_flags, f)
+                    elif selected_option == 2:
+                        print("Starting new game...")
 
+        # Clear the screen
+       # screen.fill((0, 0, 0))
+
+        # Draw the menu options
+        font = pygame.font.Font(None, 36)
+        for i, option in enumerate(menu_options):
+            text = font.render(option, True, (50, 205, 50))
+            outline = font.render(option, True, (0, 0, 0))
+            rect = text.get_rect(center=(400, 200 + i * 50))
+            outline_rect = rect.copy()
+            outline_rect.inflate_ip(4, 4)  # Make the outline slightly larger
+            outline_rect.center = rect.center
+            if i == selected_option:
+                # Highlight the selected option
+                pygame.draw.rect(screen, (255, 0, 0), rect, 3)
+            screen.blit(outline, outline_rect)
+            screen.blit(text, rect)
+
+        # Update the display
+        pygame.display.flip()
 def teleport(new_bg_path, new_walkable_tiles, new_player_x, new_player_y):
     global background_image, walkable_tiles, player_x, player_y, current_map
     # Load the new background image
@@ -255,7 +366,7 @@ def teleport(new_bg_path, new_walkable_tiles, new_player_x, new_player_y):
     player_x = new_player_x
     player_y = new_player_y
 def hub_teleport():
-    global moving_sprites, idle_sprites, movement_speed,bunny
+    global moving_sprites, idle_sprites, movement_speed
     if current_map == "city":
         x, y = 100, 350
     elif current_map == 'graveyard':
