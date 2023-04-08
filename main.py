@@ -23,7 +23,7 @@ moving_sprites = [pygame.transform.scale(pygame.image.load('resources/moving/fra
                   pygame.transform.scale(pygame.image.load('resources/moving/frame2.gif'), (120, 120)),
                   pygame.transform.scale(pygame.image.load('resources/moving/frame3.gif'), (120, 120))]
 background_frames = [pygame.image.load(f'resources/backdrop/christmas/frame{i}.gif') for i in range(5)]
-
+background_frames2 = [pygame.image.load(f'resources/backdrop/graveyard/frame_{i}.gif') for i in range(4)]
 # Set the starting sprite and position
 current_sprites = idle_sprites
 current_sprite_index = 0
@@ -97,7 +97,7 @@ def handle_input_events():
 # Define a function to update the game state
 def update():
     global player_x, player_y, current_sprites, current_sprite_index, frame_count, background_image, background_frame_index
-    global current_map
+    global current_map, background_frames2
     tile_size_x = int(screen_width / COLS)
     tile_size_y = int(screen_height / ROWS)
     # Update the player position based on movement keys
@@ -107,14 +107,15 @@ def update():
     if player_tile_x >= 0 and player_tile_x < COLS and player_tile_y >= 0 and player_tile_y < ROWS:
         if walkable_tiles[player_tile_y][player_tile_x] == 2:
             if (current_map == 'christmas'): hub_teleport()
+            elif (current_map == 'hub' and player_x > 600):graveyard_teleport()
             elif (current_map == 'hub' and player_y < 50): island_teleport()
-            elif (current_map == 'hub' and player_x > 600): graveyard_teleport()
             elif (current_map == 'hub' and player_y <200): house_teleport()
             elif (current_map == 'hub' and player_x >100): cave_teleport()
             elif (current_map == 'hub' and player_x < 70):city_teleport()
             elif(current_map == 'cave'): hub_teleport()
             elif (current_map == 'city'): hub_teleport()
             elif(current_map == 'island'): hub_teleport()
+            elif(current_map == 'graveyard'): hub_teleport()
     if move_left:
         move_vector.x -= movement_speed
     if move_right:
@@ -174,6 +175,13 @@ def update():
 
     screen.blit(background_image, (0, 0))
 
+    if frame_count % 10 == 0 and current_map == 'graveyard':
+        background_frame_index += 1
+        if background_frame_index >= len(background_frames2):
+            background_frame_index = 0
+        background_image = pygame.transform.scale(background_frames2[background_frame_index], (screen_width, screen_height))
+
+    screen.blit(background_image, (0, 0))
 
 
 def draw():
@@ -196,6 +204,7 @@ def teleport(new_bg_path, new_walkable_tiles, new_player_x, new_player_y):
     elif (current_map == 'hub' and player_y < 300): current_map = 'christmas'
     elif (current_map == 'hub' and player_x > 100): current_map = 'cave'
     elif (current_map == 'hub' and player_x < 70): current_map = 'city'
+    elif (current_map == 'graveyard'): current_map = 'hub'
     elif (current_map == 'city'): current_map = 'hub'
     elif (current_map == 'cave'): current_map = 'hub'
     elif (current_map == 'island'): current_map = 'hub'
@@ -211,6 +220,8 @@ def hub_teleport():
     global moving_sprites, idle_sprites, movement_speed
     if current_map == "city":
         x, y = 100, 350
+    elif current_map == 'graveyard':
+        x, y = 550, 1
     elif current_map == "cave":
         x, y = 150, 450
         idle_sprites.clear()
@@ -240,8 +251,8 @@ def hub_teleport():
     else:
         x, y = 75, 110
     teleport("resources/backdrop/hub/frame0.png",
-             [[1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1],
-              [1, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2],
+             [[1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 2],
+              [1, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
               [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
               [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
               [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
@@ -345,21 +356,20 @@ def island_teleport():
          [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
          [1, 1, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1]],270,530)
 def graveyard_teleport():
-
     teleport("resources/backdrop/graveyard/frame_0.gif",
-             [[1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1],
-              [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-              [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-              [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-              [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-              [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-              [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-              [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-              [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-              [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-              [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-              [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]],
-             50, 50)
+             [[0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0],
+              [0, 0, 1, 0, 1, 0, 1, 1, 0, 0, 0, 0],
+              [1, 1, 0, 1, 0, 1, 0, 0, 1, 0, 0, 0],
+              [1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0],
+              [1, 0, 0, 0, 1, 1, 0, 1, 0, 0, 0, 0],
+              [1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0],
+              [2, 1, 1, 0, 1, 1, 0, 1, 1, 0, 0, 0],
+              [0, 1, 1, 0, 1, 1, 0, 1, 0, 0, 0, 0],
+              [0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0],
+              [0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0],
+              [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+              [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]],
+             5, 200)
 while True:
     # Handle input events
     handle_input_events()
