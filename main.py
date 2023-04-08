@@ -107,11 +107,14 @@ def update():
     if player_tile_x >= 0 and player_tile_x < COLS and player_tile_y >= 0 and player_tile_y < ROWS:
         if walkable_tiles[player_tile_y][player_tile_x] == 2:
             if (current_map == 'christmas'): hub_teleport()
+            elif (current_map == 'hub' and player_y < 50): island_teleport()
+            elif (current_map == 'hub' and player_x > 600): graveyard_teleport()
             elif (current_map == 'hub' and player_y <200): house_teleport()
             elif (current_map == 'hub' and player_x >100): cave_teleport()
             elif (current_map == 'hub' and player_x < 70):city_teleport()
             elif(current_map == 'cave'): hub_teleport()
             elif (current_map == 'city'): hub_teleport()
+            elif(current_map == 'island'): hub_teleport()
     if move_left:
         move_vector.x -= movement_speed
     if move_right:
@@ -188,11 +191,14 @@ def teleport(new_bg_path, new_walkable_tiles, new_player_x, new_player_y):
     global background_image, walkable_tiles, player_x, player_y, current_map
     # Load the new background image
     if (current_map == 'christmas'): current_map = 'hub'
+    elif (current_map == 'hub' and player_x > 600):current_map = 'graveyard'
+    elif (current_map == 'hub' and player_y < 50): current_map = 'island'
     elif (current_map == 'hub' and player_y < 300): current_map = 'christmas'
     elif (current_map == 'hub' and player_x > 100): current_map = 'cave'
     elif (current_map == 'hub' and player_x < 70): current_map = 'city'
     elif (current_map == 'city'): current_map = 'hub'
     elif (current_map == 'cave'): current_map = 'hub'
+    elif (current_map == 'island'): current_map = 'hub'
     if (current_map != 'christmas'):
         del background_image
         background_image = pygame.image.load(new_bg_path).convert()
@@ -218,12 +224,24 @@ def hub_teleport():
                           pygame.transform.scale(pygame.image.load('resources/moving/frame2.gif'), (120, 120)),
                           pygame.transform.scale(pygame.image.load('resources/moving/frame3.gif'), (120, 120))]
         movement_speed = 5
-
+    elif current_map == "island":
+        x, y = 500, 1
+        idle_sprites.clear()
+        moving_sprites.clear()
+        idle_sprites = [pygame.transform.scale(pygame.image.load('resources/idle/frame0.gif'), (120, 120)),
+                        pygame.transform.scale(pygame.image.load('resources/idle/frame1.gif'), (120, 120)),
+                        pygame.transform.scale(pygame.image.load('resources/idle/frame2.gif'), (120, 120)),
+                        pygame.transform.scale(pygame.image.load('resources/idle/frame3.gif'), (120, 120))]
+        moving_sprites = [pygame.transform.scale(pygame.image.load('resources/moving/frame0.gif'), (120, 120)),
+                          pygame.transform.scale(pygame.image.load('resources/moving/frame1.gif'), (120, 120)),
+                          pygame.transform.scale(pygame.image.load('resources/moving/frame2.gif'), (120, 120)),
+                          pygame.transform.scale(pygame.image.load('resources/moving/frame3.gif'), (120, 120))]
+        movement_speed = 5
     else:
         x, y = 75, 110
     teleport("resources/backdrop/hub/frame0.png",
-             [[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-              [1, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+             [[1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1],
+              [1, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2],
               [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
               [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
               [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
@@ -297,7 +315,51 @@ def cave_teleport():
               [0, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0],
               [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]],
              360, 230)
+def island_teleport():
+    global idle_sprites, moving_sprites, movement_speed
+    # Clear the existing player sprites
+    idle_sprites.clear()
+    moving_sprites.clear()
 
+    # Load the shrunken player sprites
+    idle_sprites.append(pygame.transform.scale(pygame.image.load('resources/idle/frame0.gif'), (60, 60)))
+    idle_sprites.append(pygame.transform.scale(pygame.image.load('resources/idle/frame1.gif'), (60, 60)))
+    idle_sprites.append(pygame.transform.scale(pygame.image.load('resources/idle/frame2.gif'), (60, 60)))
+    idle_sprites.append(pygame.transform.scale(pygame.image.load('resources/idle/frame3.gif'), (60, 60)))
+    moving_sprites.append(pygame.transform.scale(pygame.image.load('resources/moving/frame0.gif'), (60, 60)))
+    moving_sprites.append(pygame.transform.scale(pygame.image.load('resources/moving/frame1.gif'), (60, 60)))
+    moving_sprites.append(pygame.transform.scale(pygame.image.load('resources/moving/frame2.gif'), (60, 60)))
+    moving_sprites.append(pygame.transform.scale(pygame.image.load('resources/moving/frame3.gif'), (60, 60)))
+    movement_speed = 2.5
+    teleport("resources/backdrop/island/frame0.png",
+        [[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+         [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+         [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+         [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+         [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+         [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+         [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+         [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+         [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+         [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+         [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+         [1, 1, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1]],270,530)
+def graveyard_teleport():
+
+    teleport("resources/backdrop/graveyard/frame_0.gif",
+             [[1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1],
+              [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+              [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+              [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+              [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+              [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+              [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+              [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+              [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+              [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+              [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+              [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]],
+             50, 50)
 while True:
     # Handle input events
     handle_input_events()
