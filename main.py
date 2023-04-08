@@ -1,6 +1,8 @@
 import pygame
+import math
 frame_count = 0
 show_walkable = 0
+interaction = 0
 # Initialize Pygame
 pygame.init()
 # Background Variables
@@ -24,6 +26,9 @@ moving_sprites = [pygame.transform.scale(pygame.image.load('resources/moving/fra
                   pygame.transform.scale(pygame.image.load('resources/moving/frame3.gif'), (120, 120))]
 background_frames = [pygame.image.load(f'resources/backdrop/christmas/frame{i}.gif') for i in range(5)]
 background_frames2 = [pygame.image.load(f'resources/backdrop/graveyard/frame_{i}.gif') for i in range(4)]
+
+
+
 # Set the starting sprite and position
 current_sprites = idle_sprites
 current_sprite_index = 0
@@ -44,7 +49,7 @@ background_x = 0
 background_y = 0
 background_speed = 1
 background_image = pygame.transform.scale(pygame.image.load('resources/backdrop/christmas/frame0.gif'), (screen_width, screen_height))
-
+bunny = pygame.transform.scale(pygame.image.load('resources/npc/bunny.png'),(100,100))
 # Nested list for determining walkable area in test
 ROWS = 12
 COLS = 12
@@ -62,10 +67,9 @@ walkable_tiles = [
     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 ]
-
 # Define a function to handle input events
 def handle_input_events():
-    global move_left, move_right, move_up, move_down, last_direction, current_map
+    global move_left, move_right, move_up, move_down, last_direction, current_map, interaction
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             pygame.quit()
@@ -83,6 +87,8 @@ def handle_input_events():
                 move_down = True
             elif event.key == pygame.K_SPACE:
                 pass
+            elif event.key == pygame.K_e and interaction == 1:
+                rabbit_interact()
         elif event.type == pygame.KEYUP:
             if event.key == pygame.K_a:
                 move_left = False
@@ -172,7 +178,6 @@ def update():
         if background_frame_index >= len(background_frames):
             background_frame_index = 0
         background_image = pygame.transform.scale(background_frames[background_frame_index], (screen_width, screen_height))
-
     screen.blit(background_image, (0, 0))
 
     if frame_count % 10 == 0 and current_map == 'graveyard':
@@ -185,15 +190,47 @@ def update():
 
 
 def draw():
-    global background_image
-    #screen.fill((255, 255, 255))
+    global background_image, bunny, interaction
+
+    if current_map == 'hub':
+        bunny_y = 330 + 5 * math.sin(pygame.time.get_ticks() / 200)
+        screen.blit(bunny, (440, bunny_y))
+
+        # Check if player is near bunny
+        if abs(player_x - 440) < 50 and abs(player_y - bunny_y) < 50:
+            # Draw "Press E to interact" message above player's head
+            font = pygame.font.Font(None, 25)
+            text = "Press E to interact"
+            text_surface = font.render(text, True, (255, 255, 255))
+            text_rect = text_surface.get_rect()
+            text_rect.center = (player_x, player_y - 50)
+
+            # Draw a red box around the text
+            box_width, box_height = text_surface.get_width() + 20, text_surface.get_height() + 10
+            box_rect = pygame.Rect((0, 0), (box_width, box_height))
+            box_rect.center = (player_x, player_y - 50)
+            pygame.draw.rect(screen, (255, 0, 0), box_rect)
+
+            screen.blit(text_surface, text_rect)
+
+            # Set interaction to 1
+            interaction = 1
+        else:
+            # Set interaction to 0
+            interaction = 0
+
     if last_direction == "left":
         # Flip the sprite horizontally
         flipped_sprite = pygame.transform.flip(current_sprites[current_sprite_index], True, False)
         screen.blit(flipped_sprite, (player_x, player_y))
     else:
         screen.blit(current_sprites[current_sprite_index], (player_x, player_y))
+
     pygame.display.update()
+
+def rabbit_interact():
+    quit()
+
 
 def teleport(new_bg_path, new_walkable_tiles, new_player_x, new_player_y):
     global background_image, walkable_tiles, player_x, player_y, current_map
@@ -212,12 +249,13 @@ def teleport(new_bg_path, new_walkable_tiles, new_player_x, new_player_y):
         del background_image
         background_image = pygame.image.load(new_bg_path).convert()
         background_image = pygame.transform.scale(background_image, (screen_width, screen_height))
+
     # Update the walkable tiles and player coordinates
     walkable_tiles = new_walkable_tiles
     player_x = new_player_x
     player_y = new_player_y
 def hub_teleport():
-    global moving_sprites, idle_sprites, movement_speed
+    global moving_sprites, idle_sprites, movement_speed,bunny
     if current_map == "city":
         x, y = 100, 350
     elif current_map == 'graveyard':
@@ -264,6 +302,9 @@ def hub_teleport():
               [1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1],
               [1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1]],
              x, y)
+
+
+
 def house_teleport():
     teleport("resources/backdrop/christmas/frame0.png",
              [
@@ -326,6 +367,7 @@ def cave_teleport():
               [0, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0],
               [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]],
              360, 230)
+
 def island_teleport():
     global idle_sprites, moving_sprites, movement_speed
     # Clear the existing player sprites
