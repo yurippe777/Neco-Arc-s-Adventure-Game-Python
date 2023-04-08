@@ -1,4 +1,5 @@
 import os
+import sys
 
 import pygame
 import math
@@ -254,12 +255,89 @@ def draw():
 
 def rabbit_interact():
     quit()
+
+
+import pygame
+
 def knight_interact():
-    global quest_flags
 
+    # Set up the window
+    size = (800, 600)
+    screen = pygame.display.set_mode(size)
+    pygame.display.set_caption("Knight Interact")
 
+    # Set up the game variables
+    my_score = 0
+    ball_x = 400
+    ball_y = 300
+    ball_dx = .4
+    ball_dy = .4
+    paddle_y = 250
+    paddle_h = 200
+    hits = 0
+    paddle_speed = 0
 
-flip_status = False
+    # Game loop
+    game_state = True
+    while game_state:
+        # Handle events
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                game_state = False
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    game_state = False
+                elif event.key == pygame.K_w:
+                    # Move paddle up continuously while the key is held down
+                    paddle_speed = -1.5
+                elif event.key == pygame.K_s:
+                    # Move paddle down continuously while the key is held down
+                    paddle_speed = 1.5
+            elif event.type == pygame.KEYUP:
+                if event.key == pygame.K_w or event.key == pygame.K_s:
+                    # Stop moving paddle
+                    paddle_speed = 0
+
+        # Update the paddle position
+        paddle_y += paddle_speed
+
+        # Update the ball position
+        ball_x += ball_dx
+        ball_y += ball_dy
+
+        # Check if the ball hit the paddle
+        if ball_x <= 20 and paddle_y <= ball_y <= paddle_y + paddle_h:
+            ball_dx = abs(ball_dx) * 1.1
+            ball_dy = ball_dy * random.uniform(0.8, 1.2)
+            hits += 1
+
+        # Check if the ball hit the wall
+        if ball_y < 0 or ball_y > 580:
+            ball_dy = -ball_dy
+
+        # Check if the ball went out of bounds
+        if ball_x < 0:
+            game_state = False
+        elif ball_x > 780:
+            ball_dx = -ball_dx
+
+        # Fill the screen with black
+        screen.fill((0, 0, 0))
+
+        # Draw the ball
+        pygame.draw.circle(screen, (255, 255, 255), (ball_x, ball_y), 10)
+
+        # Draw the paddle
+        pygame.draw.rect(screen, (255, 255, 255), (10, paddle_y, 10, paddle_h))
+
+        # Draw the score
+        font = pygame.font.Font(None, 36)
+        text = font.render("Score: " + str(hits), True, (255, 255, 255))
+        screen.blit(text, (50, 20))
+
+        # Update the display
+        pygame.display.flip()
+
 
 def npc_maker(bunny_x, bunny_y, images):
     global background_image, interaction, player_x, player_y, flip_status, current_map
