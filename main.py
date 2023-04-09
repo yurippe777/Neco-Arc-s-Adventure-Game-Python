@@ -298,6 +298,25 @@ def knight_interact():
     elif my_score >= 10:
         print("Good Job")
         my_score = 0
+        knight_name = "Knight of Honor"
+        knight_comment = "You have more skill then I thought adventurer."
+        knight_comment2 = "Take these explosives, but use them with great caution,"
+        knight_challenge = "Press B to drop one at your feet"
+        font = pygame.font.SysFont("Arial", 24)
+        knight_name_text = font.render(knight_name, True, (255, 255, 255))
+        knight_comment_text = font.render(knight_comment, True, (255, 255, 255))
+        knight_comment2_text = font.render(knight_comment2, True, (255, 255, 255))
+        knight_challenge_text = font.render(knight_challenge, True, (255, 255, 255))
+        # Display text
+        screen.blit(knight_name_text, (10, 10))
+        screen.blit(knight_comment_text, (10, 50))
+        screen.blit(knight_comment2_text, (10,100))
+        screen.blit(knight_challenge_text, (10, 150))
+        pygame.display.flip()
+        time.sleep(6)
+        quest_flags['Knight of Honor'] = True
+        inventory['Bombs'] = True
+
 def knight_interact2():
     global my_score
     # Set up the window
@@ -336,13 +355,16 @@ def knight_interact2():
                 if event.key == pygame.K_w or event.key == pygame.K_s:
                     # Stop moving paddle
                     paddle_speed = 0
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_w and event.key == pygame.K_s:
+                    paddle_speed = 0
 
         # Update the paddle position
         paddle_y += paddle_speed
 
         # Update the ball position
-        ball_x += ball_dx
-        ball_y += ball_dy
+        ball_x += min(ball_dx, 1.6)
+        ball_y += min(ball_dy, 1.6)
 
         # Check if the ball hit the paddle
         if ball_x <= 20 and paddle_y <= ball_y <= paddle_y + paddle_h:
@@ -465,7 +487,7 @@ def pause_menu():
                     elif selected_option == 2:
                         print("Starting new game...")
                         quest_flags = {"Knight of Honor": False}
-                        inventory = {"Excalibur": False, "Bombs": False}
+                        inventory = {"Bombs": False}
 
 
         # Clear the screen
