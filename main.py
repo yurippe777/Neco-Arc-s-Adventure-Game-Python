@@ -1,10 +1,11 @@
 import os
 import sys
-
+import time
 import pygame
 import math
 import json
 import random
+my_score = 0
 flip_status = False
 frame_count = 0
 show_walkable = 0
@@ -257,10 +258,48 @@ def rabbit_interact():
     quit()
 
 
-import pygame
-
 def knight_interact():
+    global my_score
+    pygame.init()
 
+    # Set up screen
+    screen_width = 800
+    screen_height = 600
+    screen = pygame.display.set_mode((screen_width, screen_height))
+
+    # Set up initial variables
+    knight_name = "Knight of Honor"
+    knight_comment = "Welcome adventurer. It is a shame to see our once great city in ruins."
+    knight_comment2 = "But enough lamenting, let's see what you're made of. Show me your skills!"
+    knight_challenge = "I have something good for you if you can score 10 points or more."
+
+    # Set up font and text objects
+    font = pygame.font.SysFont("Arial", 24)
+    knight_name_text = font.render(knight_name, True, (255, 255, 255))
+    knight_comment_text = font.render(knight_comment, True, (255, 255, 255))
+    knight_comment2_text = font.render(knight_comment2, True, (255,255,255))
+    knight_challenge_text = font.render(knight_challenge, True, (255, 255, 255))
+    if my_score == 0:
+        # Display text
+        screen.blit(knight_name_text, (10, 10))
+        screen.blit(knight_comment_text, (10, 50))
+        screen.blit(knight_comment2_text, (10,100))
+        screen.blit(knight_challenge_text, (10, 150))
+        pygame.display.flip()
+
+        # Wait a few seconds
+        time.sleep(6)
+
+        # Call second interaction function
+        knight_interact2()
+    elif my_score >0 and my_score <10:
+        print("Try harder next time")
+        my_score = 0
+    elif my_score >= 10:
+        print("Good Job")
+        my_score = 0
+def knight_interact2():
+    global my_score
     # Set up the window
     size = (800, 600)
     screen = pygame.display.set_mode(size)
@@ -310,6 +349,7 @@ def knight_interact():
             ball_dx = abs(ball_dx) * 1.1
             ball_dy = ball_dy * random.uniform(0.8, 1.2)
             hits += 1
+            my_score +=1
 
         # Check if the ball hit the wall
         if ball_y < 0 or ball_y > 580:
