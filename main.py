@@ -58,7 +58,7 @@ knight_idle = [pygame.transform.scale(pygame.image.load('resources/npc/knight_id
                pygame.transform.scale(pygame.image.load('resources/npc/knight_idle/frame1.gif'), (250, 250)),
                pygame.transform.scale(pygame.image.load('resources/npc/knight_idle/frame2.gif'), (250, 250)),
                pygame.transform.scale(pygame.image.load('resources/npc/knight_idle/frame3.gif'), (250, 250)),]
-
+bomb_img = pygame.transform.scale(pygame.image.load('resources/inventory/bomb.png'),(125,125))
 
 
 # Set the starting sprite and position
@@ -66,7 +66,8 @@ current_sprites = idle_sprites
 current_sprite_index = 0
 player_x = screen_width // 2
 player_y = screen_height // 2
-
+stale_player_x = 0
+stale_player_y = 0
 # Set up the movement variables
 movement_speed = 5
 move_left = False
@@ -113,7 +114,8 @@ except FileNotFoundError:
 
 # Define a function to handle input events
 def handle_input_events():
-    global move_left, move_right, move_up, move_down, last_direction, current_map, interaction, game_state
+    global move_left, move_right, move_up, move_down, last_direction, current_map, interaction, game_state,player_x,player_y
+    global stale_player_x, stale_player_y
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             pygame.quit()
@@ -129,8 +131,11 @@ def handle_input_events():
                 move_up = True
             elif event.key == pygame.K_s:
                 move_down = True
-            elif event.key == pygame.K_SPACE:
-                pass
+            elif event.key == pygame.K_b:
+                stale_player_x = player_x
+                stale_player_y = player_y
+            elif stale_player_x != 0 and event.key == pygame.K_e:
+                bomb_interact()
             elif event.key == pygame.K_e and interaction == 1 and current_map == 'hub':
                 rabbit_interact()
             elif event.key == pygame.K_e and interaction == 1 and current_map == 'city':
@@ -239,12 +244,14 @@ def update():
 
 
 def draw():
-    global background_image, bunny, interaction, game_state, current_map,knight_idle, npc_locations
+    global background_image, bunny, interaction, game_state, current_map,knight_idle, npc_locations, stale_player_x, stale_player_y
     bunny_y = 330 + 5 * math.sin(pygame.time.get_ticks() / 200)
     if current_map == 'hub':
         npc_maker(440,bunny_y,bunny)
     if current_map == 'city':
         npc_maker(50,350,knight_idle)
+    if stale_player_x != 0:
+        npc_maker(stale_player_x,stale_player_y,bomb_img)
     if last_direction == "left":
         # Flip the sprite horizontally
         flipped_sprite = pygame.transform.flip(current_sprites[current_sprite_index], True, False)
@@ -253,7 +260,8 @@ def draw():
         screen.blit(current_sprites[current_sprite_index], (player_x, player_y))
 
     pygame.display.update()
-
+def bomb_interact():
+    print("This is a bomb")
 def rabbit_interact():
     quit()
 
@@ -402,7 +410,7 @@ def knight_interact2():
 
 
 def npc_maker(bunny_x, bunny_y, images):
-    global background_image, interaction, player_x, player_y, flip_status, current_map
+    global background_image, interaction, player_x, player_y, flip_status, current_map, bomb_img
 
     if current_map == 'hub' or current_map == 'city':
         if isinstance(images, list):
@@ -416,9 +424,11 @@ def npc_maker(bunny_x, bunny_y, images):
                 image = pygame.transform.flip(image, True, False)  # Flip the image if flip_status is True
 
         screen.blit(image, (bunny_x, bunny_y))
-
+        interact_distance = 50
+        if images == bomb_img:
+            interact_distance = 500
         # Check if player is near bunny
-        if abs(player_x - bunny_x) < 50 and abs(player_y - bunny_y) < 50:
+        if abs(player_x - bunny_x) < interact_distance and abs(player_y - bunny_y) < interact_distance:
             # Draw "Press E to interact" message above player's head
             font = pygame.font.Font(None, 25)
             text = "Press E to interact"
@@ -511,7 +521,8 @@ def pause_menu():
         # Update the display
         pygame.display.flip()
 def teleport(new_bg_path, new_walkable_tiles, new_player_x, new_player_y):
-    global background_image, walkable_tiles, player_x, player_y, current_map
+    global background_image, walkable_tiles, player_x, player_y, current_map,stale_player_x
+    stale_player_x = 0
     # Load the new background image
     if (current_map == 'christmas'): current_map = 'hub'
     elif (current_map == 'hub' and player_x > 600):current_map = 'graveyard'
