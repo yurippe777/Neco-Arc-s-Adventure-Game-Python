@@ -5,6 +5,8 @@ import pygame
 import math
 import json
 import random
+counter = 0
+bomb_det = 0
 my_score = 0
 flip_status = False
 frame_count = 0
@@ -59,7 +61,10 @@ knight_idle = [pygame.transform.scale(pygame.image.load('resources/npc/knight_id
                pygame.transform.scale(pygame.image.load('resources/npc/knight_idle/frame2.gif'), (250, 250)),
                pygame.transform.scale(pygame.image.load('resources/npc/knight_idle/frame3.gif'), (250, 250)),]
 bomb_img = pygame.transform.scale(pygame.image.load('resources/inventory/bomb.png'),(125,125))
-
+bomb_explosion = [pygame.transform.scale(pygame.image.load('resources/inventory/frame_0.png'), (120, 120)),
+                  pygame.transform.scale(pygame.image.load('resources/inventory/frame_1.png'), (120, 120)),
+                  pygame.transform.scale(pygame.image.load('resources/inventory/frame_2.png'), (120, 120)),
+                  pygame.transform.scale(pygame.image.load('resources/inventory/frame_3.png'), (120, 120))]
 
 # Set the starting sprite and position
 current_sprites = idle_sprites
@@ -114,7 +119,7 @@ except FileNotFoundError:
 
 # Define a function to handle input events
 def handle_input_events():
-    global move_left, move_right, move_up, move_down, last_direction, current_map, interaction, game_state,player_x,player_y
+    global move_left, move_right, move_up, move_down, last_direction, current_map, interaction, game_state,player_x,player_y, bomb_explosion, stale_player_x, stale_player_y
     global stale_player_x, stale_player_y
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -244,14 +249,22 @@ def update():
 
 
 def draw():
-    global background_image, bunny, interaction, game_state, current_map,knight_idle, npc_locations, stale_player_x, stale_player_y
+    global background_image, bunny, interaction, game_state, current_map,knight_idle, npc_locations, stale_player_x, stale_player_y, bomb_det, counter
     bunny_y = 330 + 5 * math.sin(pygame.time.get_ticks() / 200)
     if current_map == 'hub':
         npc_maker(440,bunny_y,bunny)
     if current_map == 'city':
         npc_maker(50,350,knight_idle)
-    if stale_player_x != 0:
+    if stale_player_x != 0 and bomb_det == 0:
         npc_maker(stale_player_x,stale_player_y,bomb_img)
+    if stale_player_x != 0 and bomb_det == 1:
+        npc_maker(stale_player_x, stale_player_y, bomb_explosion)
+        counter = counter + 1
+        if counter == 90:
+            stale_player_x = 0
+            stale_player_y = 0
+            counter = 0
+            bomb_det = 0
     if last_direction == "left":
         # Flip the sprite horizontally
         flipped_sprite = pygame.transform.flip(current_sprites[current_sprite_index], True, False)
@@ -261,7 +274,9 @@ def draw():
 
     pygame.display.update()
 def bomb_interact():
+    global bomb_det
     print("This is a bomb")
+    bomb_det = 1
 def rabbit_interact():
     quit()
 
