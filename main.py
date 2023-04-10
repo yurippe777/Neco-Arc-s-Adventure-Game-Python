@@ -1,10 +1,11 @@
 import os
 import sys
-
+import time
 import pygame
 import math
 import json
 import random
+my_score = 0
 flip_status = False
 frame_count = 0
 show_walkable = 0
@@ -57,7 +58,7 @@ knight_idle = [pygame.transform.scale(pygame.image.load('resources/npc/knight_id
                pygame.transform.scale(pygame.image.load('resources/npc/knight_idle/frame1.gif'), (250, 250)),
                pygame.transform.scale(pygame.image.load('resources/npc/knight_idle/frame2.gif'), (250, 250)),
                pygame.transform.scale(pygame.image.load('resources/npc/knight_idle/frame3.gif'), (250, 250)),]
-
+bomb_img = pygame.transform.scale(pygame.image.load('resources/inventory/bomb.png'),(125,125))
 
 
 # Set the starting sprite and position
@@ -65,7 +66,8 @@ current_sprites = idle_sprites
 current_sprite_index = 0
 player_x = screen_width // 2
 player_y = screen_height // 2
-
+stale_player_x = 0
+stale_player_y = 0
 # Set up the movement variables
 movement_speed = 5
 move_left = False
@@ -112,7 +114,8 @@ except FileNotFoundError:
 
 # Define a function to handle input events
 def handle_input_events():
-    global move_left, move_right, move_up, move_down, last_direction, current_map, interaction, game_state
+    global move_left, move_right, move_up, move_down, last_direction, current_map, interaction, game_state,player_x,player_y
+    global stale_player_x, stale_player_y
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             pygame.quit()
@@ -128,8 +131,11 @@ def handle_input_events():
                 move_up = True
             elif event.key == pygame.K_s:
                 move_down = True
-            elif event.key == pygame.K_SPACE:
-                pass
+            elif event.key == pygame.K_b:
+                stale_player_x = player_x
+                stale_player_y = player_y
+            elif stale_player_x != 0 and event.key == pygame.K_e:
+                bomb_interact()
             elif event.key == pygame.K_e and interaction == 1 and current_map == 'hub':
                 rabbit_interact()
             elif event.key == pygame.K_e and interaction == 1 and current_map == 'city':
@@ -238,12 +244,14 @@ def update():
 
 
 def draw():
-    global background_image, bunny, interaction, game_state, current_map,knight_idle, npc_locations
+    global background_image, bunny, interaction, game_state, current_map,knight_idle, npc_locations, stale_player_x, stale_player_y
     bunny_y = 330 + 5 * math.sin(pygame.time.get_ticks() / 200)
     if current_map == 'hub':
         npc_maker(440,bunny_y,bunny)
     if current_map == 'city':
         npc_maker(50,350,knight_idle)
+    if stale_player_x != 0:
+        npc_maker(stale_player_x,stale_player_y,bomb_img)
     if last_direction == "left":
         # Flip the sprite horizontally
         flipped_sprite = pygame.transform.flip(current_sprites[current_sprite_index], True, False)
@@ -252,15 +260,73 @@ def draw():
         screen.blit(current_sprites[current_sprite_index], (player_x, player_y))
 
     pygame.display.update()
-
+def bomb_interact():
+    print("This is a bomb")
 def rabbit_interact():
     quit()
 
 
-import pygame
-
 def knight_interact():
+    global my_score
+    pygame.init()
 
+    # Set up screen
+    screen_width = 800
+    screen_height = 600
+    screen = pygame.display.set_mode((screen_width, screen_height))
+
+    # Set up initial variables
+    knight_name = "Knight of Honor"
+    knight_comment = "Welcome adventurer. It is a shame to see our once great city in ruins."
+    knight_comment2 = "But enough lamenting, let's see what you're made of. Show me your skills!"
+    knight_challenge = "I have something good for you if you can score 10 points or more."
+
+    # Set up font and text objects
+    font = pygame.font.SysFont("Arial", 24)
+    knight_name_text = font.render(knight_name, True, (255, 255, 255))
+    knight_comment_text = font.render(knight_comment, True, (255, 255, 255))
+    knight_comment2_text = font.render(knight_comment2, True, (255,255,255))
+    knight_challenge_text = font.render(knight_challenge, True, (255, 255, 255))
+    if my_score == 0:
+        # Display text
+        screen.blit(knight_name_text, (10, 10))
+        screen.blit(knight_comment_text, (10, 50))
+        screen.blit(knight_comment2_text, (10,100))
+        screen.blit(knight_challenge_text, (10, 150))
+        pygame.display.flip()
+
+        # Wait a few seconds
+        time.sleep(6)
+
+        # Call second interaction function
+        knight_interact2()
+    elif my_score >0 and my_score <10:
+        print("Try harder next time")
+        my_score = 0
+    elif my_score >= 10:
+        print("Good Job")
+        my_score = 0
+        knight_name = "Knight of Honor"
+        knight_comment = "You have more skill then I thought adventurer."
+        knight_comment2 = "Take these explosives, but use them with great caution,"
+        knight_challenge = "Press B to drop one at your feet"
+        font = pygame.font.SysFont("Arial", 24)
+        knight_name_text = font.render(knight_name, True, (255, 255, 255))
+        knight_comment_text = font.render(knight_comment, True, (255, 255, 255))
+        knight_comment2_text = font.render(knight_comment2, True, (255, 255, 255))
+        knight_challenge_text = font.render(knight_challenge, True, (255, 255, 255))
+        # Display text
+        screen.blit(knight_name_text, (10, 10))
+        screen.blit(knight_comment_text, (10, 50))
+        screen.blit(knight_comment2_text, (10,100))
+        screen.blit(knight_challenge_text, (10, 150))
+        pygame.display.flip()
+        time.sleep(6)
+        quest_flags['Knight of Honor'] = True
+        inventory['Bombs'] = True
+
+def knight_interact2():
+    global my_score
     # Set up the window
     size = (800, 600)
     screen = pygame.display.set_mode(size)
@@ -297,19 +363,23 @@ def knight_interact():
                 if event.key == pygame.K_w or event.key == pygame.K_s:
                     # Stop moving paddle
                     paddle_speed = 0
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_w and event.key == pygame.K_s:
+                    paddle_speed = 0
 
         # Update the paddle position
         paddle_y += paddle_speed
 
         # Update the ball position
-        ball_x += ball_dx
-        ball_y += ball_dy
+        ball_x += min(ball_dx, 1.6)
+        ball_y += min(ball_dy, 1.6)
 
         # Check if the ball hit the paddle
         if ball_x <= 20 and paddle_y <= ball_y <= paddle_y + paddle_h:
             ball_dx = abs(ball_dx) * 1.1
             ball_dy = ball_dy * random.uniform(0.8, 1.2)
             hits += 1
+            my_score +=1
 
         # Check if the ball hit the wall
         if ball_y < 0 or ball_y > 580:
@@ -340,7 +410,7 @@ def knight_interact():
 
 
 def npc_maker(bunny_x, bunny_y, images):
-    global background_image, interaction, player_x, player_y, flip_status, current_map
+    global background_image, interaction, player_x, player_y, flip_status, current_map, bomb_img
 
     if current_map == 'hub' or current_map == 'city':
         if isinstance(images, list):
@@ -354,9 +424,11 @@ def npc_maker(bunny_x, bunny_y, images):
                 image = pygame.transform.flip(image, True, False)  # Flip the image if flip_status is True
 
         screen.blit(image, (bunny_x, bunny_y))
-
+        interact_distance = 50
+        if images == bomb_img:
+            interact_distance = 500
         # Check if player is near bunny
-        if abs(player_x - bunny_x) < 50 and abs(player_y - bunny_y) < 50:
+        if abs(player_x - bunny_x) < interact_distance and abs(player_y - bunny_y) < interact_distance:
             # Draw "Press E to interact" message above player's head
             font = pygame.font.Font(None, 25)
             text = "Press E to interact"
@@ -425,7 +497,7 @@ def pause_menu():
                     elif selected_option == 2:
                         print("Starting new game...")
                         quest_flags = {"Knight of Honor": False}
-                        inventory = {"Excalibur": False, "Bombs": False}
+                        inventory = {"Bombs": False}
 
 
         # Clear the screen
@@ -449,7 +521,8 @@ def pause_menu():
         # Update the display
         pygame.display.flip()
 def teleport(new_bg_path, new_walkable_tiles, new_player_x, new_player_y):
-    global background_image, walkable_tiles, player_x, player_y, current_map
+    global background_image, walkable_tiles, player_x, player_y, current_map,stale_player_x
+    stale_player_x = 0
     # Load the new background image
     if (current_map == 'christmas'): current_map = 'hub'
     elif (current_map == 'hub' and player_x > 600):current_map = 'graveyard'
