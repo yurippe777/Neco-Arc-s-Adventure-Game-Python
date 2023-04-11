@@ -5,6 +5,7 @@ import pygame
 import math
 import json
 import random
+balloons_popped = 0
 counter = 0
 bomb_det = 0
 my_score = 0
@@ -22,7 +23,7 @@ if os.path.isfile("quest_flags.txt"):
         quest_flags = json.load(f)
 else:
     # Create quest_flags.txt and initialize all flags to false
-    quest_flags = {"Knight of Honor": False, "Placeholder": False, "Placeholder 2": False}
+    quest_flags = {"Knight of Honor": False, "Boulder": False, "Archery": False}
     with open("quest_flags.txt", "w") as f:
         json.dump(quest_flags, f)
 
@@ -32,7 +33,7 @@ if os.path.isfile("inventory.txt"):
         inventory = json.load(f)
 else:
     # Create inventory.txt and initialize all items to false
-    inventory = {"Excalibur": False, "Bombs": False, "Placeholder3": False}
+    inventory = {"Bombs": False, "Bunny Bag": False, "Placeholder3": False}
     with open("inventory.txt", "w") as f:
         json.dump(inventory, f)
 # Background Variables
@@ -60,12 +61,16 @@ knight_idle = [pygame.transform.scale(pygame.image.load('resources/npc/knight_id
                pygame.transform.scale(pygame.image.load('resources/npc/knight_idle/frame1.gif'), (250, 250)),
                pygame.transform.scale(pygame.image.load('resources/npc/knight_idle/frame2.gif'), (250, 250)),
                pygame.transform.scale(pygame.image.load('resources/npc/knight_idle/frame3.gif'), (250, 250)),]
-bomb_img = pygame.transform.scale(pygame.image.load('resources/inventory/bomb.png'),(125,125))
-bomb_explosion = [pygame.transform.scale(pygame.image.load('resources/inventory/frame_0.png'), (120, 120)),
-                  pygame.transform.scale(pygame.image.load('resources/inventory/frame_1.png'), (120, 120)),
-                  pygame.transform.scale(pygame.image.load('resources/inventory/frame_2.png'), (120, 120)),
-                  pygame.transform.scale(pygame.image.load('resources/inventory/frame_3.png'), (120, 120))]
-
+bomb_img = pygame.transform.scale(pygame.image.load('resources/inventory/bomb.png'),(75,75))
+bomb_explosion = [pygame.transform.scale(pygame.image.load('resources/inventory/frame_0.png'), (75, 75)),
+                  pygame.transform.scale(pygame.image.load('resources/inventory/frame_1.png'), (75, 75)),
+                  pygame.transform.scale(pygame.image.load('resources/inventory/frame_2.png'), (75, 75)),
+                  pygame.transform.scale(pygame.image.load('resources/inventory/frame_3.png'), (75, 75))]
+boulder = pygame.transform.scale(pygame.image.load('resources/map_objects/boulder.png'),(200,200))
+archer_frames = []
+for i in range(12):
+    frame = pygame.transform.scale(pygame.image.load(f"resources/npc/archer_elf/frame{i}.png"), (600, 300))
+    archer_frames.append(frame)
 # Set the starting sprite and position
 current_sprites = idle_sprites
 current_sprite_index = 0
@@ -145,6 +150,8 @@ def handle_input_events():
                 rabbit_interact()
             elif event.key == pygame.K_e and interaction == 1 and current_map == 'city':
                 knight_interact()
+            elif event.key == pygame.K_e and interaction == 1 and current_map == 'cave':
+                elf_interact()
             elif event.key == pygame.K_ESCAPE:
                 pause_menu()
         elif event.type == pygame.KEYUP:
@@ -253,6 +260,9 @@ def draw():
     bunny_y = 330 + 5 * math.sin(pygame.time.get_ticks() / 200)
     if current_map == 'hub':
         npc_maker(440,bunny_y,bunny)
+    if current_map == 'hub':
+        if not quest_flags["Boulder"]:
+            npc_maker(150, 450, boulder)
     if current_map == 'city':
         npc_maker(50,350,knight_idle)
     if stale_player_x != 0 and bomb_det == 0:
@@ -260,11 +270,15 @@ def draw():
     if stale_player_x != 0 and bomb_det == 1:
         npc_maker(stale_player_x, stale_player_y, bomb_explosion)
         counter = counter + 1
+        if current_map == "hub" and abs(stale_player_x - 150) < 150 and abs(stale_player_y - 450) < 150:
+            quest_flags["Boulder"] = True
         if counter == 90:
             stale_player_x = 0
             stale_player_y = 0
             counter = 0
             bomb_det = 0
+    if current_map == 'cave':
+         npc_maker(300,260,archer_frames)
     if last_direction == "left":
         # Flip the sprite horizontally
         flipped_sprite = pygame.transform.flip(current_sprites[current_sprite_index], True, False)
@@ -279,7 +293,201 @@ def bomb_interact():
     bomb_det = 1
 def rabbit_interact():
     quit()
+def elf_interact():
+    global balloons_popped
+    pygame.init()
 
+    # Set up screen
+    screen_width = 800
+    screen_height = 600
+    screen = pygame.display.set_mode((screen_width, screen_height))
+
+    # Set up initial variables
+    knight_name = "Knight of Honor"
+    knight_comment = "Welcome adventurer. It is a shame to see our once great city in ruins."
+    knight_comment2 = "But enough lamenting, let's see what you're made of. Show me your skills!"
+    knight_challenge = "I have something good for you if you can score 10 points or more."
+
+    # Set up font and text objects
+    font = pygame.font.SysFont("Arial", 24)
+    knight_name_text = font.render(knight_name, True, (255, 255, 255))
+    knight_comment_text = font.render(knight_comment, True, (255, 255, 255))
+    knight_comment2_text = font.render(knight_comment2, True, (255, 255, 255))
+    knight_challenge_text = font.render(knight_challenge, True, (255, 255, 255))
+    if balloons_popped == 0:
+        # Display text
+        screen.blit(knight_name_text, (10, 10))
+        screen.blit(knight_comment_text, (10, 50))
+        screen.blit(knight_comment2_text, (10, 100))
+        screen.blit(knight_challenge_text, (10, 150))
+        pygame.display.flip()
+
+        # Wait a few seconds
+        time.sleep(6)
+
+        # Call second interaction function
+        elf_interact2()
+    elif balloons_popped > 0 and balloons_popped < 10:
+        print("Try harder next time")
+        balloons_popped = 0
+    elif balloons_popped >= 30:
+        print("Good Job")
+        balloons_popped = 0
+        knight_name = "Knight of Honor"
+        knight_comment = "You have more skill then I thought adventurer."
+        knight_comment2 = "Take these explosives, but use them with great caution,"
+        knight_challenge = "Press B to drop one at your feet"
+        font = pygame.font.SysFont("Arial", 24)
+        knight_name_text = font.render(knight_name, True, (255, 255, 255))
+        knight_comment_text = font.render(knight_comment, True, (255, 255, 255))
+        knight_comment2_text = font.render(knight_comment2, True, (255, 255, 255))
+        knight_challenge_text = font.render(knight_challenge, True, (255, 255, 255))
+        # Display text
+        screen.blit(knight_name_text, (10, 10))
+        screen.blit(knight_comment_text, (10, 50))
+        screen.blit(knight_comment2_text, (10, 100))
+        screen.blit(knight_challenge_text, (10, 150))
+        pygame.display.flip()
+        time.sleep(6)
+        quest_flags['Archery'] = True
+        inventory['Bunny Bag'] = True
+def elf_interact2():
+        global balloons_popped
+        # Set up the game variables
+        font = pygame.font.SysFont("Arial", 24)
+        balloons = []
+        balloon_speed = .08
+        balloon_color = pygame.Color(random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))
+        balloon_radius = 40
+        balloon_count = 50
+        balloons_popped = 0
+        balloons_flying_off_screen = 0
+        game_over = False
+
+        # Set up the player variables
+        player_x = screen_width // 2
+        player_y = screen_height // 2
+        player_speed = .25
+        player_color = (0, 0, 255)
+        player_radius = 10
+
+        # Set up the shooting variables
+        bullet_speed = 10
+        bullet_color = (0, 255, 0)
+        bullet_radius = 5
+        bullets = []
+
+        # Create the balloons
+        for i in range(balloon_count):
+            x = random.randint(balloon_radius, screen_width - balloon_radius)
+            y = random.randint(screen_height + balloon_radius, (screen_height * 2)+ 1250)
+            balloons.append((x, y))
+
+        # Start the game loop
+        while not game_over:
+            # Handle events
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    game_over = True
+                elif event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_SPACE:
+                        bullets.append((player_x, player_y))
+
+            # Move the player
+            keys = pygame.key.get_pressed()
+            if keys[pygame.K_w]:
+                player_y -= player_speed
+            if keys[pygame.K_s]:
+                player_y += player_speed
+            if keys[pygame.K_a]:
+                player_x -= player_speed
+            if keys[pygame.K_d]:
+                player_x += player_speed
+
+            # Keep the player on screen
+            if player_x < player_radius:
+                player_x = player_radius
+            elif player_x > screen_width - player_radius:
+                player_x = screen_width - player_radius
+            if player_y < player_radius:
+                player_y = player_radius
+            elif player_y > screen_height - player_radius:
+                player_y = screen_height - player_radius
+
+            # Move the balloons
+            for i in range(len(balloons)):
+                x, y = balloons[i]
+                y -= balloon_speed
+                balloons[i] = (x, y)
+
+            # Check if all balloons have reached the top
+            END = 0
+            if len(balloons) >= balloon_count:
+                all_balloons_gone = all(y <= 0 for x, y in balloons)
+                if all_balloons_gone:
+                    END = 1
+            # Check for collisions between bullets and balloons
+            for bullet in bullets:
+                for i in range(len(balloons)):
+                    x, y = balloons[i]
+                    if (x - bullet[0]) ** 2 + (y - bullet[1]) ** 2 <= (balloon_radius + bullet_radius) ** 2:
+                        balloons[i] = (x, -300)
+                        balloons_popped += 1
+                        #balloons.pop(i)
+                        break
+            # Remove bullets that are not on screen
+            for i in range(len(bullets)):
+                x, y = bullets[i]
+                bullets.pop(i)
+
+
+            # Check if the game is over
+            if END ==1:
+                game_over = True
+
+            # Draw the game objects
+            screen.fill((255, 255, 255))
+            # Draw the balloons
+            for x, y in balloons:
+                pygame.draw.circle(screen, balloon_color, (x, y), balloon_radius)
+
+            # Draw the player
+            pygame.draw.circle(screen, player_color, (player_x, player_y), player_radius)
+
+            # Draw the bullets
+            for x, y in bullets:
+                pygame.draw.circle(screen, bullet_color, (x, y), bullet_radius)
+
+            # Draw the score
+            score_text = font.render(f"Score: {balloons_popped}", True, (0, 0, 0))
+            screen.blit(score_text, (10, 10))
+
+            # Update the display
+            pygame.display.update()
+
+        # Game over screen
+        screen.fill((255, 255, 255))
+        if balloons_popped >= 40:
+            game_over_text = font.render("You win!", True, (0, 0, 0))
+            screen.blit(game_over_text, (
+            screen_width // 2 - game_over_text.get_width() // 2,
+            screen_height // 2 - game_over_text.get_height() // 2))
+            pygame.display.update()
+            time.sleep(3)
+            return balloons_popped
+        else:
+            game_over_text = font.render("Game over", True, (0, 0, 0))
+            screen.blit(game_over_text, (
+            screen_width // 2 - game_over_text.get_width() // 2, screen_height // 2 - game_over_text.get_height() // 2))
+            pygame.display.update()
+            time.sleep(3)
+            return balloons_popped
+        # Wait for the user to close the window
+        while True:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    return
 
 def knight_interact():
     global my_score
@@ -427,21 +635,24 @@ def knight_interact2():
 def npc_maker(bunny_x, bunny_y, images):
     global background_image, interaction, player_x, player_y, flip_status, current_map, bomb_img
 
-    if current_map == 'hub' or current_map == 'city':
-        if isinstance(images, list):
-            image_index = pygame.time.get_ticks() // 200 % len(images)  # Change image every 5 frames (200 milliseconds)
-            image = images[image_index]
-            if flip_status:
-                image = pygame.transform.flip(image, True, False)  # Flip the image if flip_status is True
-        else:
-            image = images
-            if flip_status:
-                image = pygame.transform.flip(image, True, False)  # Flip the image if flip_status is True
+    if isinstance(images, list):
+        image_index = pygame.time.get_ticks() // 150 % len(images)  # Change image every 5 frames (150 milliseconds)
+        image = images[image_index]
+        if flip_status:
+            image = pygame.transform.flip(image, True, False)  # Flip the image if flip_status is True
+    else:
+        image = images
+        if flip_status:
+            image = pygame.transform.flip(image, True, False)  # Flip the image if flip_status is True
 
-        screen.blit(image, (bunny_x, bunny_y))
-        interact_distance = 50
-        if images == bomb_img:
-            interact_distance = 500
+    screen.blit(image, (bunny_x, bunny_y))
+    interact_distance = 50
+    if images == bomb_img:
+        interact_distance = 500
+    if images != bomb_img and current_map == 'cave':
+        bunny_x = 530
+        bunny_y = 500
+    if images != boulder:
         # Check if player is near bunny
         if abs(player_x - bunny_x) < interact_distance and abs(player_y - bunny_y) < interact_distance:
             # Draw "Press E to interact" message above player's head
@@ -465,8 +676,9 @@ def npc_maker(bunny_x, bunny_y, images):
             # Set interaction to 0
             interaction = 0
 
-        # Flip the image randomly
-        if pygame.time.get_ticks() // 1000 % 3 == 0 and random.random() < 0.01 and current_map == 'city':
+    # Flip the image randomly
+    if pygame.time.get_ticks() // 1000 % 3 == 0 and random.random() < 0.01:
+        if current_map == 'city':
             flip_status = not flip_status  # Invert the flip status
 
 def pause_menu():
@@ -511,8 +723,8 @@ def pause_menu():
                             json.dump(quest_flags, f)
                     elif selected_option == 2:
                         print("Starting new game...")
-                        quest_flags = {"Knight of Honor": False}
-                        inventory = {"Bombs": False}
+                        quest_flags = {"Knight of Honor": False, "Boulder": False,"Archery": False}
+                        inventory = {"Bombs": False, "Bunny Bag": False}
 
 
         # Clear the screen
@@ -559,7 +771,7 @@ def teleport(new_bg_path, new_walkable_tiles, new_player_x, new_player_y):
     player_x = new_player_x
     player_y = new_player_y
 def hub_teleport():
-    global moving_sprites, idle_sprites, movement_speed
+    global moving_sprites, idle_sprites, movement_speed, bomb_explosion,bomb_img
     if current_map == "city":
         x, y = 100, 350
     elif current_map == 'graveyard':
@@ -576,6 +788,12 @@ def hub_teleport():
                           pygame.transform.scale(pygame.image.load('resources/moving/frame1.gif'), (120, 120)),
                           pygame.transform.scale(pygame.image.load('resources/moving/frame2.gif'), (120, 120)),
                           pygame.transform.scale(pygame.image.load('resources/moving/frame3.gif'), (120, 120))]
+        bomb_img = pygame.transform.scale(pygame.image.load('resources/inventory/bomb.png'), (75, 75))
+        bomb_explosion = [pygame.transform.scale(pygame.image.load('resources/inventory/frame_0.png'), (75, 75)),
+                          pygame.transform.scale(pygame.image.load('resources/inventory/frame_1.png'), (75, 75)),
+                          pygame.transform.scale(pygame.image.load('resources/inventory/frame_2.png'), (75, 75)),
+                          pygame.transform.scale(pygame.image.load('resources/inventory/frame_3.png'), (75, 75))]
+
         movement_speed = 5
     elif current_map == "island":
         x, y = 500, 1
@@ -589,6 +807,11 @@ def hub_teleport():
                           pygame.transform.scale(pygame.image.load('resources/moving/frame1.gif'), (120, 120)),
                           pygame.transform.scale(pygame.image.load('resources/moving/frame2.gif'), (120, 120)),
                           pygame.transform.scale(pygame.image.load('resources/moving/frame3.gif'), (120, 120))]
+        bomb_img = pygame.transform.scale(pygame.image.load('resources/inventory/bomb.png'), (75, 75))
+        bomb_explosion = [pygame.transform.scale(pygame.image.load('resources/inventory/frame_0.png'), (75, 75)),
+                          pygame.transform.scale(pygame.image.load('resources/inventory/frame_1.png'), (75, 75)),
+                          pygame.transform.scale(pygame.image.load('resources/inventory/frame_2.png'), (75, 75)),
+                          pygame.transform.scale(pygame.image.load('resources/inventory/frame_3.png'), (75, 75))]
         movement_speed = 5
     else:
         x, y = 75, 110
@@ -641,11 +864,12 @@ def city_teleport():
         [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2]
     ],700,400)
 def cave_teleport():
-    global idle_sprites, moving_sprites, movement_speed
+    global idle_sprites, moving_sprites, movement_speed, bomb_img, bomb_explosion
     # Clear the existing player sprites
     idle_sprites.clear()
     moving_sprites.clear()
-
+    bomb_explosion.clear()
+    bomb_img = 0
     # Load the shrunken player sprites
     idle_sprites.append(pygame.transform.scale(pygame.image.load('resources/idle/frame0.gif'), (50, 50)))
     idle_sprites.append(pygame.transform.scale(pygame.image.load('resources/idle/frame1.gif'), (50, 50)))
@@ -655,6 +879,11 @@ def cave_teleport():
     moving_sprites.append(pygame.transform.scale(pygame.image.load('resources/moving/frame1.gif'), (50, 50)))
     moving_sprites.append(pygame.transform.scale(pygame.image.load('resources/moving/frame2.gif'), (50, 50)))
     moving_sprites.append(pygame.transform.scale(pygame.image.load('resources/moving/frame3.gif'), (50, 50)))
+    bomb_img = pygame.transform.scale(pygame.image.load('resources/inventory/bomb.png'), (31, 31))
+    bomb_explosion = [pygame.transform.scale(pygame.image.load('resources/inventory/frame_0.png'), (31, 31)),
+                      pygame.transform.scale(pygame.image.load('resources/inventory/frame_1.png'), (31, 31)),
+                      pygame.transform.scale(pygame.image.load('resources/inventory/frame_2.png'), (31, 31)),
+                      pygame.transform.scale(pygame.image.load('resources/inventory/frame_3.png'), (31, 31))]
     movement_speed = 2.083
     # Teleport the player
     teleport("resources/backdrop/cave/frame0.png",
@@ -673,7 +902,7 @@ def cave_teleport():
              360, 230)
 
 def island_teleport():
-    global idle_sprites, moving_sprites, movement_speed
+    global idle_sprites, moving_sprites, movement_speed, bomb_img, bomb_explosion
     # Clear the existing player sprites
     idle_sprites.clear()
     moving_sprites.clear()
@@ -687,6 +916,11 @@ def island_teleport():
     moving_sprites.append(pygame.transform.scale(pygame.image.load('resources/moving/frame1.gif'), (60, 60)))
     moving_sprites.append(pygame.transform.scale(pygame.image.load('resources/moving/frame2.gif'), (60, 60)))
     moving_sprites.append(pygame.transform.scale(pygame.image.load('resources/moving/frame3.gif'), (60, 60)))
+    bomb_img = pygame.transform.scale(pygame.image.load('resources/inventory/bomb.png'), (37.5, 37.5))
+    bomb_explosion = [pygame.transform.scale(pygame.image.load('resources/inventory/frame_0.png'), (37.5, 37.5)),
+                      pygame.transform.scale(pygame.image.load('resources/inventory/frame_1.png'), (37.5, 37.5)),
+                      pygame.transform.scale(pygame.image.load('resources/inventory/frame_2.png'), (37.5, 37.5)),
+                      pygame.transform.scale(pygame.image.load('resources/inventory/frame_3.png'), (37.5, 37.5))]
     movement_speed = 2.5
     teleport("resources/backdrop/island/frame0.png",
         [[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
