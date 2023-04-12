@@ -5,6 +5,9 @@ import pygame
 import math
 import json
 import random
+x_ref = 5
+y_ref = 20
+Slime_location = 0
 balloons_popped = 0
 counter = 0
 bomb_det = 0
@@ -23,7 +26,7 @@ if os.path.isfile("quest_flags.txt"):
         quest_flags = json.load(f)
 else:
     # Create quest_flags.txt and initialize all flags to false
-    quest_flags = {"Knight of Honor": False, "Boulder": False, "Archery": False}
+    quest_flags = {"Knight of Honor": False, "Boulder": False, "Archery": False, "Slime": False}
     with open("quest_flags.txt", "w") as f:
         json.dump(quest_flags, f)
 
@@ -67,6 +70,12 @@ bomb_explosion = [pygame.transform.scale(pygame.image.load('resources/inventory/
                   pygame.transform.scale(pygame.image.load('resources/inventory/frame_2.png'), (75, 75)),
                   pygame.transform.scale(pygame.image.load('resources/inventory/frame_3.png'), (75, 75))]
 boulder = pygame.transform.scale(pygame.image.load('resources/map_objects/boulder.png'),(200,200))
+boating =[pygame.transform.scale(pygame.image.load('resources/boating/frame0.gif'), (120, 120)),
+          pygame.transform.scale(pygame.image.load('resources/boating/frame1.gif'), (120, 120)),]
+Slime = [pygame.transform.scale(pygame.image.load('resources/map_objects/frame0.png'), (75,75)),
+                  pygame.transform.scale(pygame.image.load('resources/map_objects/frame1.png'), (75, 75)),
+                  pygame.transform.scale(pygame.image.load('resources/map_objects/frame2.png'), (75, 75)),
+                  pygame.transform.scale(pygame.image.load('resources/map_objects/frame3.png'), (75, 75))]
 archer_frames = []
 for i in range(12):
     frame = pygame.transform.scale(pygame.image.load(f"resources/npc/archer_elf/frame{i}.png"), (600, 300))
@@ -167,7 +176,7 @@ def handle_input_events():
 
 # Define a function to update the game state
 def update():
-    global player_x, player_y, current_sprites, current_sprite_index, frame_count, background_image, background_frame_index
+    global player_x, player_y, current_sprites, current_sprite_index, frame_count, background_image, background_frame_index, boating
     global current_map, background_frames2
     tile_size_x = int(screen_width / COLS)
     tile_size_y = int(screen_height / ROWS)
@@ -204,7 +213,7 @@ def update():
         player_x += move_vector.x * movement_speed
         tile_size_x = int(screen_width / COLS)
         player_tile_x = int(player_x / tile_size_x)
-        if player_tile_x < 0 or player_tile_x >= COLS or not walkable_tiles[int(player_y / tile_size_y)][player_tile_x]:
+        if player_tile_x < 0 or player_tile_x >= COLS or not walkable_tiles[int(player_y / tile_size_y)][player_tile_x] or (walkable_tiles[player_tile_y][player_tile_x] == 3 and inventory['Boat']==False) or walkable_tiles[player_tile_y][player_tile_x] == 4 :
             # Player cannot move in the x direction, so revert the movement and set idle sprites
             player_x -= move_vector.x * movement_speed
             move_vector.x = 0
@@ -214,7 +223,7 @@ def update():
         player_y += move_vector.y * movement_speed
         tile_size_y = int(screen_height / ROWS)
         player_tile_y = int(player_y / tile_size_y)
-        if player_tile_y < 0 or player_tile_y >= ROWS or not walkable_tiles[player_tile_y][int(player_x / tile_size_x)]:
+        if player_tile_y < 0 or player_tile_y >= ROWS or not walkable_tiles[player_tile_y][int(player_x / tile_size_x)]or (walkable_tiles[player_tile_y][player_tile_x] == 3 and inventory['Boat']== False) or walkable_tiles[player_tile_y][player_tile_x] == 4:
             # Player cannot move in the y direction, so revert the movement and set idle sprites
             player_y -= move_vector.y * movement_speed
             move_vector.y = 0
@@ -228,8 +237,13 @@ def update():
 
     else:
         current_sprites = idle_sprites
-
+    if walkable_tiles[player_tile_y][player_tile_x] == 3:
+        if inventory["Boat"] == True:
+            current_sprites = boating
+        else: current_sprites = idle_sprites
     # Update the current sprite based on the current frame
+    if current_map == 'island' and walkable_tiles[player_tile_y][player_tile_x] == 4:
+        current_sprites = boating
     frame_count += 1
     if frame_count >= 5:
         frame_count = 0
@@ -256,7 +270,8 @@ def update():
 
 
 def draw():
-    global background_image, bunny, interaction, game_state, current_map,knight_idle, npc_locations, stale_player_x, stale_player_y, bomb_det, counter
+    global background_image, bunny, interaction, game_state, current_map,knight_idle, npc_locations, stale_player_x, stale_player_y, bomb_det, counter, Slime, Slime_location
+    global x_ref,y_ref
     bunny_y = 330 + 5 * math.sin(pygame.time.get_ticks() / 200)
     if current_map == 'hub':
         npc_maker(440,bunny_y,bunny)
@@ -265,13 +280,32 @@ def draw():
             npc_maker(150, 450, boulder)
     if current_map == 'city':
         npc_maker(50,350,knight_idle)
+    if current_map == 'island' and not quest_flags["Slime"]:
+        if current_map == 'island' and Slime_location == 0 and \
+                abs(player_x - 5) < 76 and abs(player_y - 20) < 76:
+            x_ref = 300
+            y_ref = 0
+            Slime_location += 1
+        if current_map == 'island' and Slime_location == 1 and \
+                abs(player_x - 300) < 76 and abs(player_y - 0) < 76:
+            x_ref = 500
+            y_ref = 500
+            Slime_location += 1
+        if current_map == 'island'  and Slime_location == 2 and \
+                abs(player_x - 500) < 76 and abs(player_y - 500) < 76:
+            x_ref = 5
+            y_ref = 20
+            Slime_location = 0
+        npc_maker(x_ref,y_ref,Slime)
     if stale_player_x != 0 and bomb_det == 0:
         npc_maker(stale_player_x,stale_player_y,bomb_img)
     if stale_player_x != 0 and bomb_det == 1:
         npc_maker(stale_player_x, stale_player_y, bomb_explosion)
         counter = counter + 1
-        if current_map == "hub" and abs(stale_player_x - 150) < 150 and abs(stale_player_y - 450) < 150:
+        if current_map == "hub" and abs(stale_player_x - 150) < 75 and abs(stale_player_y - 450) < 75:
             quest_flags["Boulder"] = True
+        if current_map == "island" and abs(stale_player_x - x_ref) < 75 and abs(stale_player_y - y_ref)<75:
+            quest_flags["Slime"] = True
         if counter == 90:
             stale_player_x = 0
             stale_player_y = 0
@@ -281,10 +315,11 @@ def draw():
          npc_maker(300,260,archer_frames)
     if last_direction == "left":
         # Flip the sprite horizontally
-        flipped_sprite = pygame.transform.flip(current_sprites[current_sprite_index], True, False)
+        flipped_sprite = pygame.transform.flip(current_sprites[current_sprite_index % len(current_sprites)], True,
+                                               False)
         screen.blit(flipped_sprite, (player_x, player_y))
     else:
-        screen.blit(current_sprites[current_sprite_index], (player_x, player_y))
+        screen.blit(current_sprites[current_sprite_index % len(current_sprites)], (player_x, player_y))
 
     pygame.display.update()
 def bomb_interact():
@@ -309,7 +344,7 @@ def rabbit_interact():
     else:
         knight_name = "Boating Bunny"
         knight_comment = "Thank you for getting my bag back to me! Water should no longer hinder you."
-        knight_comment2 = "to you, just make sure to be careful out on the open seas."
+        knight_comment2 = "Just make sure to be careful out on the open seas for my sake, ok?"
         knight_comment3 = ""
         knight_challenge = ""
         inventory['Boat'] = True
@@ -673,7 +708,6 @@ def knight_interact2():
 
 def npc_maker(bunny_x, bunny_y, images):
     global background_image, interaction, player_x, player_y, flip_status, current_map, bomb_img
-
     if isinstance(images, list):
         image_index = pygame.time.get_ticks() // 150 % len(images)  # Change image every 5 frames (150 milliseconds)
         image = images[image_index]
@@ -691,7 +725,7 @@ def npc_maker(bunny_x, bunny_y, images):
     if images != bomb_img and current_map == 'cave':
         bunny_x = 530
         bunny_y = 500
-    if images != boulder:
+    if images != boulder or images != Slime:
         # Check if player is near bunny
         if abs(player_x - bunny_x) < interact_distance and abs(player_y - bunny_y) < interact_distance:
             # Draw "Press E to interact" message above player's head
@@ -762,7 +796,7 @@ def pause_menu():
                             json.dump(quest_flags, f)
                     elif selected_option == 2:
                         print("Starting new game...")
-                        quest_flags = {"Knight of Honor": False, "Boulder": False,"Archery": False}
+                        quest_flags = {"Knight of Honor": False, "Boulder": False,"Archery": False, "Slime": False}
                         inventory = {"Bombs": False, "Bunny Bag": False, "Boat": False}
 
 
@@ -858,15 +892,15 @@ def hub_teleport():
              [[1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 2],
               [1, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
               [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-              [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-              [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-              [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-              [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-              [2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-              [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-              [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-              [1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-              [1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1]],
+              [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 3, 3],
+              [1, 1, 1, 1, 1, 3, 3, 3, 3, 3, 3, 3],
+              [1, 1, 1, 1, 1, 1, 1, 3, 3, 3, 3, 3],
+              [1, 1, 1, 1, 1, 1, 1, 1, 1, 3, 3, 3],
+              [2, 1, 1, 1, 1, 1, 1, 1, 1, 3, 3, 3],
+              [1, 1, 1, 1, 1, 3, 3, 1, 1, 3, 3, 3],
+              [1, 1, 1, 1, 3, 3, 3, 3, 3, 3, 3, 3],
+              [1, 1, 2, 1, 3, 3, 3, 3, 3, 3, 3, 3],
+              [1, 1, 2, 1, 3, 3, 3, 3, 3, 3, 3, 3]],
              x, y)
 
 
@@ -962,18 +996,18 @@ def island_teleport():
                       pygame.transform.scale(pygame.image.load('resources/inventory/frame_3.png'), (37.5, 37.5))]
     movement_speed = 2.5
     teleport("resources/backdrop/island/frame0.png",
-        [[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-         [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-         [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-         [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-         [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-         [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-         [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-         [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-         [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-         [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-         [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-         [1, 1, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1]],270,530)
+        [[3, 4, 1, 1, 1, 1, 1, 1, 1, 1, 4, 3],
+         [3, 4, 0, 0, 0, 0, 0, 1, 0, 0, 4, 3],
+         [3, 4, 0, 1, 1, 0, 0, 1, 0, 0, 4, 3],
+         [3, 4, 1, 1, 1, 1, 1, 1, 1, 1, 4, 3],
+         [3, 4, 1, 1, 1, 1, 1, 1, 1, 1, 4, 3],
+         [3, 4, 1, 1, 1, 1, 1, 1, 1, 1, 4, 3],
+         [3, 4, 4, 1, 4, 4, 4, 1, 1, 4, 3, 3],
+         [3, 3, 3, 1, 3, 3, 3, 3, 3, 3, 3, 3],
+         [3, 3, 1, 1, 1, 3, 3, 3, 3, 3, 3, 3],
+         [3, 3, 1, 1, 1, 1, 3, 3, 3, 3, 3, 3],
+         [3, 1, 1, 1, 1, 1, 1, 3, 3, 3, 3, 3],
+         [3, 2, 2, 2, 2, 2, 1, 3, 3, 3, 3, 1]],270,530)
 def graveyard_teleport():
     teleport("resources/backdrop/graveyard/frame_0.gif",
              [[0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0],
