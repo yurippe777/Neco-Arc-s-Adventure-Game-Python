@@ -5,6 +5,12 @@ import pygame
 import math
 import json
 import random
+fruit_caught = 0
+fail_index = 0
+beam_attack = 0
+beam_start = 0
+stale_player_x2 = 0
+stale_player_y2 = 0
 x_ref = 5
 y_ref = 20
 Slime_location = 0
@@ -26,7 +32,7 @@ if os.path.isfile("quest_flags.txt"):
         quest_flags = json.load(f)
 else:
     # Create quest_flags.txt and initialize all flags to false
-    quest_flags = {"Knight of Honor": False, "Boulder": False, "Archery": False, "Slime": False}
+    quest_flags = {"Knight of Honor": False, "Boulder": False, "Archery": False, "Slime": False, "holy_grail": False}
     with open("quest_flags.txt", "w") as f:
         json.dump(quest_flags, f)
 
@@ -36,7 +42,7 @@ if os.path.isfile("inventory.txt"):
         inventory = json.load(f)
 else:
     # Create inventory.txt and initialize all items to false
-    inventory = {"Bombs": False, "Bunny Bag": False, "Boat": False}
+    inventory = {"Bombs": False, "Bunny Bag": False, "Boat": False, "GoB": False, "Beam": False}
     with open("inventory.txt", "w") as f:
         json.dump(inventory, f)
 # Background Variables
@@ -60,6 +66,10 @@ moving_sprites = [pygame.transform.scale(pygame.image.load('resources/moving/fra
                   pygame.transform.scale(pygame.image.load('resources/moving/frame3.gif'), (120, 120))]
 background_frames = [pygame.image.load(f'resources/backdrop/christmas/frame{i}.gif') for i in range(5)]
 background_frames2 = [pygame.image.load(f'resources/backdrop/graveyard/frame_{i}.gif') for i in range(4)]
+background_frames3 = [pygame.image.load(f'resources/backdrop/holy_grail/frame_{i:03d}_delay-0.04s.gif') for i in range(108)]
+
+beams = [pygame.transform.scale(pygame.image.load(f'resources/inventory/beam_attack/frame{i}.png'), (300, 300)) for i in range(16)]
+ghost = [pygame.transform.scale(pygame.image.load(f'resources/npc/Ghost/frame{i}.png'), (300, 300)) for i in range(16)]
 knight_idle = [pygame.transform.scale(pygame.image.load('resources/npc/knight_idle/frame0.gif'), (250, 250)),
                pygame.transform.scale(pygame.image.load('resources/npc/knight_idle/frame1.gif'), (250, 250)),
                pygame.transform.scale(pygame.image.load('resources/npc/knight_idle/frame2.gif'), (250, 250)),
@@ -69,6 +79,10 @@ bomb_explosion = [pygame.transform.scale(pygame.image.load('resources/inventory/
                   pygame.transform.scale(pygame.image.load('resources/inventory/frame_1.png'), (75, 75)),
                   pygame.transform.scale(pygame.image.load('resources/inventory/frame_2.png'), (75, 75)),
                   pygame.transform.scale(pygame.image.load('resources/inventory/frame_3.png'), (75, 75))]
+portal = [pygame.transform.scale(pygame.image.load('resources/inventory/tile0.png'), (150, 150)),
+                  pygame.transform.scale(pygame.image.load('resources/inventory/tile1.png'), (150, 150)),
+                  pygame.transform.scale(pygame.image.load('resources/inventory/tile2.png'), (150, 150)),
+                  pygame.transform.scale(pygame.image.load('resources/inventory/tile3.png'), (150, 150))]
 boulder = pygame.transform.scale(pygame.image.load('resources/map_objects/boulder.png'),(200,200))
 boating =[pygame.transform.scale(pygame.image.load('resources/boating/frame0.gif'), (120, 120)),
           pygame.transform.scale(pygame.image.load('resources/boating/frame1.gif'), (120, 120)),]
@@ -76,6 +90,8 @@ Slime = [pygame.transform.scale(pygame.image.load('resources/map_objects/frame0.
                   pygame.transform.scale(pygame.image.load('resources/map_objects/frame1.png'), (75, 75)),
                   pygame.transform.scale(pygame.image.load('resources/map_objects/frame2.png'), (75, 75)),
                   pygame.transform.scale(pygame.image.load('resources/map_objects/frame3.png'), (75, 75))]
+GoB = pygame.transform.scale(pygame.image.load('resources/inventory/portal_key.png'),(125,125))
+holy_grail = pygame.transform.scale(pygame.image.load('resources/map_objects/holy_grail.png'),(200,200))
 archer_frames = []
 for i in range(12):
     frame = pygame.transform.scale(pygame.image.load(f"resources/npc/archer_elf/frame{i}.png"), (600, 300))
@@ -114,8 +130,8 @@ walkable_tiles = [
     [1, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0],
     [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
     [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
-    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
-    [1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 0],
+    [1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 1, 0],
+    [1, 1, 1, 1, 2, 1, 1, 1, 1, 2, 1, 0],
     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 ]
@@ -134,7 +150,7 @@ except FileNotFoundError:
 # Define a function to handle input events
 def handle_input_events():
     global move_left, move_right, move_up, move_down, last_direction, current_map, interaction, game_state,player_x,player_y, bomb_explosion, stale_player_x, stale_player_y
-    global stale_player_x, stale_player_y
+    global stale_player_x, stale_player_y, GoB, stale_player_x2, stale_player_y2, portal, beam_attack
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             pygame.quit()
@@ -155,12 +171,20 @@ def handle_input_events():
                 stale_player_y = player_y
             elif stale_player_x != 0 and event.key == pygame.K_e:
                 bomb_interact()
+            elif event.key == pygame.K_f and inventory["Beam"] == True:
+                beam_attack = 1
             elif event.key == pygame.K_e and interaction == 1 and current_map == 'hub':
                 rabbit_interact()
             elif event.key == pygame.K_e and interaction == 1 and current_map == 'city':
                 knight_interact()
             elif event.key == pygame.K_e and interaction == 1 and current_map == 'cave':
                 elf_interact()
+            elif event.key == pygame.K_e and interaction == 1 and current_map == 'graveyard':
+                ghost_interact()
+            elif event.key == pygame.K_e and interaction == 1 and current_map == 'island':
+                inventory["GoB"] = True
+            elif event.key == pygame.K_e and interaction == 1 and current_map == 'holygrail':
+                holy_grail_interact()
             elif event.key == pygame.K_ESCAPE:
                 pause_menu()
         elif event.type == pygame.KEYUP:
@@ -177,7 +201,7 @@ def handle_input_events():
 # Define a function to update the game state
 def update():
     global player_x, player_y, current_sprites, current_sprite_index, frame_count, background_image, background_frame_index, boating
-    global current_map, background_frames2
+    global current_map, background_frames2, background_frames3
     tile_size_x = int(screen_width / COLS)
     tile_size_y = int(screen_height / ROWS)
     # Update the player position based on movement keys
@@ -186,7 +210,11 @@ def update():
     player_tile_y = int(player_y / tile_size_y)
     if player_tile_x >= 0 and player_tile_x < COLS and player_tile_y >= 0 and player_tile_y < ROWS:
         if walkable_tiles[player_tile_y][player_tile_x] == 2:
-            if (current_map == 'christmas'): hub_teleport()
+            if (current_map == 'christmas' and player_x < 410): hub_teleport()
+            elif(current_map == 'holygrail'): alter_teleport()
+            elif (current_map == 'alter' and player_y > 400): house_teleport()
+            elif (current_map == 'alter' and player_y < 400): holy_grail_teleport()
+            elif (current_map == 'christmas' and player_x > 410 and inventory['GoB'] == True): alter_teleport()
             elif (current_map == 'hub' and player_x > 600):graveyard_teleport()
             elif (current_map == 'hub' and player_y < 50): island_teleport()
             elif (current_map == 'hub' and player_y <200): house_teleport()
@@ -237,10 +265,13 @@ def update():
 
     else:
         current_sprites = idle_sprites
-    if walkable_tiles[player_tile_y][player_tile_x] == 3:
-        if inventory["Boat"] == True:
-            current_sprites = boating
-        else: current_sprites = idle_sprites
+    if player_tile_y >= 0 and player_tile_y < len(walkable_tiles) and player_tile_x >= 0 and player_tile_x < len(
+            walkable_tiles[0]):
+        if walkable_tiles[player_tile_y][player_tile_x] == 3:
+            if inventory["Boat"] == True:
+                current_sprites = boating
+            else:
+                current_sprites = idle_sprites
     # Update the current sprite based on the current frame
     if current_map == 'island' and walkable_tiles[player_tile_y][player_tile_x] == 4:
         current_sprites = boating
@@ -265,14 +296,21 @@ def update():
             background_frame_index = 0
         background_image = pygame.transform.scale(background_frames2[background_frame_index], (screen_width, screen_height))
 
+    if frame_count % 10 == 0 and current_map == 'holygrail':
+        background_frame_index += 1
+        if background_frame_index >= len(background_frames3):
+            background_frame_index = 0
+        background_image = pygame.transform.scale(background_frames3[background_frame_index], (screen_width, screen_height))
     screen.blit(background_image, (0, 0))
 
 
 
 def draw():
     global background_image, bunny, interaction, game_state, current_map,knight_idle, npc_locations, stale_player_x, stale_player_y, bomb_det, counter, Slime, Slime_location
-    global x_ref,y_ref
+    global x_ref,y_ref, GoB, stale_player_x2, stale_player_y2, portal,beams, move_up,move_right,move_left,move_down,last_direction,beam_start, ghost, holy_grail
     bunny_y = 330 + 5 * math.sin(pygame.time.get_ticks() / 200)
+    if (current_map == 'christmas' or current_map == 'alter') and inventory["GoB"] == True:
+        npc_maker(650,440,portal)
     if current_map == 'hub':
         npc_maker(440,bunny_y,bunny)
     if current_map == 'hub':
@@ -280,6 +318,21 @@ def draw():
             npc_maker(150, 450, boulder)
     if current_map == 'city':
         npc_maker(50,350,knight_idle)
+    if current_map == 'graveyard':
+        npc_maker(280,150,ghost)
+    if current_map == 'holygrail' and quest_flags['holy_grail'] == False:
+        npc_maker(320,150,holy_grail)
+    if beam_attack == 1:
+        beam_start = 1
+        if (move_up == True and move_left == False and move_right == False):
+            npc_maker(player_x- 90,player_y-250,beams)
+        elif (move_left == True):
+            npc_maker(player_x -250, player_y-90, beams)
+        elif (move_down == True and move_left == False and move_right == False):
+            npc_maker(player_x - 90, player_y + 90, beams)
+        elif (move_right == True):
+            npc_maker(player_x+90, player_y-90 ,beams)
+        else: npc_maker(player_x- 90,player_y-250,beams)
     if current_map == 'island' and not quest_flags["Slime"]:
         if current_map == 'island' and Slime_location == 0 and \
                 abs(player_x - 5) < 76 and abs(player_y - 20) < 76:
@@ -299,6 +352,8 @@ def draw():
         npc_maker(x_ref,y_ref,Slime)
     if stale_player_x != 0 and bomb_det == 0:
         npc_maker(stale_player_x,stale_player_y,bomb_img)
+    if stale_player_x2 != 0:
+        npc_maker(stale_player_x2, stale_player_y2, portal)
     if stale_player_x != 0 and bomb_det == 1:
         npc_maker(stale_player_x, stale_player_y, bomb_explosion)
         counter = counter + 1
@@ -313,6 +368,8 @@ def draw():
             bomb_det = 0
     if current_map == 'cave':
          npc_maker(300,260,archer_frames)
+    if current_map == 'island' and inventory["GoB"] == False and quest_flags["Slime"] == True:
+        npc_maker(x_ref,y_ref,GoB)
     if last_direction == "left":
         # Flip the sprite horizontally
         flipped_sprite = pygame.transform.flip(current_sprites[current_sprite_index % len(current_sprites)], True,
@@ -326,6 +383,195 @@ def bomb_interact():
     global bomb_det
     print("This is a bomb")
     bomb_det = 1
+def holy_grail_interact():
+    pygame.init()
+
+    # Set up screen
+    screen_width = 800
+    screen_height = 600
+    screen = pygame.display.set_mode((screen_width, screen_height))
+
+    # Set up initial variables
+    knight_name = "Holy Grail"
+    knight_comment = "It is said to possess immense magical powers and the ability to grant wishes."
+    knight_comment2 = "It is fully corrupted, and is a threat to all of mankind."
+    knight_comment3 = "You know what you must do to protect your homeland and those who you hold dear."
+
+    # Set up font and text objects
+    font = pygame.font.SysFont("Arial", 20)
+    knight_name_text = font.render(knight_name, True, (255, 255, 255))
+    knight_comment_text = font.render(knight_comment, True, (255, 255, 255))
+    knight_comment2_text = font.render(knight_comment2, True, (255, 255, 255))
+    knight_comment3_text = font.render(knight_comment3, True, (255,255,255))
+    screen.blit(knight_name_text, (10, 10))
+    screen.blit(knight_comment_text, (10, 50))
+    screen.blit(knight_comment2_text, (10, 100))
+    screen.blit(knight_comment3_text, (10, 150))
+    pygame.display.flip()
+
+    # Wait a few seconds
+    time.sleep(7)
+def ghost_interact():
+    global fruit_caught
+    pygame.init()
+
+    # Set up screen
+    screen_width = 800
+    screen_height = 600
+    screen = pygame.display.set_mode((screen_width, screen_height))
+
+    # Set up initial variables
+    knight_name = "Gravestone"
+    knight_comment = "Ye who seek strength, try thy might in this game of the dead,"
+    knight_comment2 = "you must catch 100 souls, but beware! With each collected soul"
+    knight_comment3 = "your job becomes more difficult, and the amount of souls left to collect"
+    knight_challenge = "becomes smaller and smaller!"
+
+    # Set up font and text objects
+    font = pygame.font.SysFont("Arial", 20)
+    knight_name_text = font.render(knight_name, True, (255, 255, 255))
+    knight_comment_text = font.render(knight_comment, True, (255, 255, 255))
+    knight_comment2_text = font.render(knight_comment2, True, (255, 255, 255))
+    knight_comment3_text = font.render(knight_comment3, True, (255,255,255))
+    knight_challenge_text = font.render(knight_challenge, True, (255, 255, 255))
+    if fruit_caught == 0:
+        # Display text
+        screen.blit(knight_name_text, (10, 10))
+        screen.blit(knight_comment_text, (10, 50))
+        screen.blit(knight_comment2_text, (10, 100))
+        screen.blit(knight_comment3_text, (10, 150))
+        screen.blit(knight_challenge_text, (10, 200))
+        pygame.display.flip()
+
+        # Wait a few seconds
+        time.sleep(8)
+
+        # Call second interaction function
+        ghost_interact2()
+    elif fruit_caught > 0 and fruit_caught < 100:
+        print("Try harder next time")
+        balloons_popped = 0
+    elif fruit_caught >= 100:
+        print("Good Job")
+        balloons_popped = 0
+        knight_name = "Gravestone"
+        knight_comment = "Congrats, you have been blessed by the dead, and have gained the ability"
+        knight_comment2 = "Known as instant death beam, it is said to be strong enough to destroy anything in"
+        knight_challenge = "its path. Use it by pressing F."
+        font = pygame.font.SysFont("Arial", 24)
+        knight_name_text = font.render(knight_name, True, (255, 255, 255))
+        knight_comment_text = font.render(knight_comment, True, (255, 255, 255))
+        knight_comment2_text = font.render(knight_comment2, True, (255, 255, 255))
+        knight_challenge_text = font.render(knight_challenge, True, (255, 255, 255))
+        # Display text
+        screen.blit(knight_name_text, (10, 10))
+        screen.blit(knight_comment_text, (10, 50))
+        screen.blit(knight_comment2_text, (10, 100))
+        screen.blit(knight_challenge_text, (10, 150))
+        pygame.display.flip()
+        time.sleep(8)
+        inventory['Beam'] = True
+def ghost_interact2():
+    global fruit_caught
+    # Initialize game variables
+    screen_width = 800
+    screen_height = 600
+    background_color = (255, 255, 255)
+    fruit_color = (255, 0, 0)
+    player_color = (0, 0, 255)
+    player_width = 200
+    player_height = 50
+    player_speed = 1.2
+    fruit_width = 25
+    fruit_height = 25
+    fruit_count = 40
+    fruits_missed = 0
+    fruit_caught = 0
+    fruit_speed = .1 + (.005 * fruit_caught)
+    font_size = 32
+    font_color = (0, 0, 0)
+    font_type = pygame.font.SysFont(None, font_size)
+
+    # Initialize Pygame and set up the screen
+    pygame.init()
+    screen = pygame.display.set_mode((screen_width, screen_height))
+    pygame.display.set_caption("Fruit Grab")
+
+    # Initialize the player position
+    player_x = screen_width // 2
+    player_y = screen_height - player_height
+
+    # Create a list to hold the fruit
+    fruit_list = []
+
+    # Set up the game clock
+    clock = pygame.time.Clock()
+
+    # Main game loop
+    while True:
+        # Handle events
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+
+        # Move the player based on keyboard input
+        keys = pygame.key.get_pressed()
+        if keys[pygame.K_a] and player_x > 0:
+            player_x -= player_speed
+        if keys[pygame.K_d] and player_x < screen_width - player_width:
+            player_x += player_speed
+
+        # Spawn a new fruit at random position
+        if len(fruit_list) < fruit_count:
+            fruit_x = random.randint(0, screen_width - fruit_width)
+            fruit_y = random.randint(-1000,0)
+            fruit_list.append([fruit_x, fruit_y])
+
+        # Move the fruit down the screen
+        for i in range(len(fruit_list)):
+            fruit_list[i][1] += fruit_speed
+
+        # Check if any fruit has been caught by the player
+        for fruit in fruit_list:
+            fruit_rect = pygame.Rect(fruit[0], fruit[1], fruit_width, fruit_height)
+            player_rect = pygame.Rect(player_x, player_y, player_width, player_height)
+            if player_rect.colliderect(fruit_rect):
+                fruit_list.remove(fruit)
+                fruit_caught += 1
+                fruit_speed = .1 + (.005 * fruit_caught)
+
+        # Clear the screen
+        screen.fill(background_color)
+
+        # Draw the player
+        pygame.draw.rect(screen, player_color, (player_x, player_y, player_width, player_height))
+
+        # Draw the fruit
+        for fruit in fruit_list:
+            pygame.draw.rect(screen, fruit_color, (fruit[0], fruit[1], fruit_width, fruit_height))
+
+        # Draw the score
+        score_text = font_type.render("Score: " + str(fruit_caught), True, font_color)
+        screen.blit(score_text, (10, 10))
+
+        # Update the display
+        pygame.display.flip()
+
+        # Check if the game has ended
+        if fruit_caught >= 100:
+            game_over_text = font_type.render("You Win!", True, font_color)
+            screen.blit(game_over_text, (screen_width // 2 - font_size, screen_height // 2 - font_size))
+            pygame.display.flip()
+            pygame.time.wait(3000)
+            return
+        if all(fruit[1] > 600 for fruit in fruit_list) and fruit_caught > 0:
+            game_over_text = font_type.render("You Lose!", True, font_color)
+            screen.blit(game_over_text, (screen_width // 2 - font_size, screen_height // 2 - font_size))
+            pygame.display.flip()
+            pygame.time.wait(3000)
+            return
+
 def rabbit_interact():
     pygame.init()
 
@@ -707,17 +953,32 @@ def knight_interact2():
 
 
 def npc_maker(bunny_x, bunny_y, images):
-    global background_image, interaction, player_x, player_y, flip_status, current_map, bomb_img
-    if isinstance(images, list):
+    global background_image, interaction, player_x, player_y, flip_status, current_map, bomb_img, portal,move_left,move_up,move_down,move_right,beams,beam_attack, fail_index
+    global beam_attack_started, beam_attack_frame,beam_start
+    if isinstance(images, list) and images != beams:
         image_index = pygame.time.get_ticks() // 150 % len(images)  # Change image every 5 frames (150 milliseconds)
         image = images[image_index]
         if flip_status:
             image = pygame.transform.flip(image, True, False)  # Flip the image if flip_status is True
     else:
-        image = images
+        if images != beams:
+            image = images
+            if flip_status:
+                image = pygame.transform.flip(image, True, False)  # Flip the image if flip_status is True
+    if isinstance(images, list) and images == beams:
+        fail_index = (fail_index + 1) % len(images)  # Increment image_index by 1 and wrap around when it reaches the end
+        image = images[fail_index]
+        if fail_index == len(beams) - 1:
+            beam_attack = 0  # Reset the global variable to 0 once the final frame has been displayed
+            return
+        if move_left:
+            image = pygame.transform.rotate(image, 90)
+        elif move_right:
+            image = pygame.transform.rotate(image, -90)
+        elif move_up:
+            image = pygame.transform.rotate(image, 180)
         if flip_status:
             image = pygame.transform.flip(image, True, False)  # Flip the image if flip_status is True
-
     screen.blit(image, (bunny_x, bunny_y))
     interact_distance = 50
     if images == bomb_img:
@@ -725,6 +986,8 @@ def npc_maker(bunny_x, bunny_y, images):
     if images != bomb_img and current_map == 'cave':
         bunny_x = 530
         bunny_y = 500
+    if images == portal or images == beams:
+        interact_distance = 0
     if images != boulder or images != Slime:
         # Check if player is near bunny
         if abs(player_x - bunny_x) < interact_distance and abs(player_y - bunny_y) < interact_distance:
@@ -796,8 +1059,8 @@ def pause_menu():
                             json.dump(quest_flags, f)
                     elif selected_option == 2:
                         print("Starting new game...")
-                        quest_flags = {"Knight of Honor": False, "Boulder": False,"Archery": False, "Slime": False}
-                        inventory = {"Bombs": False, "Bunny Bag": False, "Boat": False}
+                        quest_flags = {"Knight of Honor": False, "Boulder": False,"Archery": False, "Slime": False,"holy_grail": False}
+                        inventory = {"Bombs": False, "Bunny Bag": False, "Boat": False, "GoB": False, "Beam": False}
 
 
         # Clear the screen
@@ -824,7 +1087,11 @@ def teleport(new_bg_path, new_walkable_tiles, new_player_x, new_player_y):
     global background_image, walkable_tiles, player_x, player_y, current_map,stale_player_x
     stale_player_x = 0
     # Load the new background image
-    if (current_map == 'christmas'): current_map = 'hub'
+    if (current_map == 'christmas' and player_x < 410): current_map = 'hub'
+    elif(current_map == 'holygrail'): current_map = 'alter'
+    elif(current_map == 'alter' and player_y > 400): current_map = 'christmas'
+    elif(current_map == 'alter' and player_y < 400): current_map = 'holygrail'
+    elif(current_map == 'christmas' and player_x > 410): current_map = 'alter'
     elif (current_map == 'hub' and player_x > 600):current_map = 'graveyard'
     elif (current_map == 'hub' and player_y < 50): current_map = 'island'
     elif (current_map == 'hub' and player_y < 300): current_map = 'christmas'
@@ -906,6 +1173,24 @@ def hub_teleport():
 
 
 def house_teleport():
+    global idle_sprites, moving_sprites, bomb_explosion, bomb_img, movement_speed
+    idle_sprites.clear()
+    moving_sprites.clear()
+    bomb_explosion.clear()
+    idle_sprites = [pygame.transform.scale(pygame.image.load('resources/idle/frame0.gif'), (120, 120)),
+                    pygame.transform.scale(pygame.image.load('resources/idle/frame1.gif'), (120, 120)),
+                    pygame.transform.scale(pygame.image.load('resources/idle/frame2.gif'), (120, 120)),
+                    pygame.transform.scale(pygame.image.load('resources/idle/frame3.gif'), (120, 120))]
+    moving_sprites = [pygame.transform.scale(pygame.image.load('resources/moving/frame0.gif'), (120, 120)),
+                      pygame.transform.scale(pygame.image.load('resources/moving/frame1.gif'), (120, 120)),
+                      pygame.transform.scale(pygame.image.load('resources/moving/frame2.gif'), (120, 120)),
+                      pygame.transform.scale(pygame.image.load('resources/moving/frame3.gif'), (120, 120))]
+    bomb_img = pygame.transform.scale(pygame.image.load('resources/inventory/bomb.png'), (75, 75))
+    bomb_explosion = [pygame.transform.scale(pygame.image.load('resources/inventory/frame_0.png'), (75, 75)),
+                      pygame.transform.scale(pygame.image.load('resources/inventory/frame_1.png'), (75, 75)),
+                      pygame.transform.scale(pygame.image.load('resources/inventory/frame_2.png'), (75, 75)),
+                      pygame.transform.scale(pygame.image.load('resources/inventory/frame_3.png'), (75, 75))]
+    movement_speed = 5
     teleport("resources/backdrop/christmas/frame0.png",
              [
                  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -916,8 +1201,8 @@ def house_teleport():
                  [1, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0],
                  [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
                  [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
-                 [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
-                 [1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 0],
+                 [1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 1, 0],
+                 [1, 1, 1, 1, 2, 1, 1, 1, 1, 2, 1, 0],
                  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
                  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
              ],300,380)
@@ -1023,6 +1308,75 @@ def graveyard_teleport():
               [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
               [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]],
              5, 200)
+def alter_teleport():
+    global idle_sprites, moving_sprites, movement_speed, bomb_img, bomb_explosion
+    # Clear the existing player sprites
+    idle_sprites.clear()
+    moving_sprites.clear()
+    bomb_explosion.clear()
+    bomb_img = 0
+    # Load the shrunken player sprites
+    idle_sprites.append(pygame.transform.scale(pygame.image.load('resources/idle/frame0.gif'), (50, 50)))
+    idle_sprites.append(pygame.transform.scale(pygame.image.load('resources/idle/frame1.gif'), (50, 50)))
+    idle_sprites.append(pygame.transform.scale(pygame.image.load('resources/idle/frame2.gif'), (50, 50)))
+    idle_sprites.append(pygame.transform.scale(pygame.image.load('resources/idle/frame3.gif'), (50, 50)))
+    moving_sprites.append(pygame.transform.scale(pygame.image.load('resources/moving/frame0.gif'), (50, 50)))
+    moving_sprites.append(pygame.transform.scale(pygame.image.load('resources/moving/frame1.gif'), (50, 50)))
+    moving_sprites.append(pygame.transform.scale(pygame.image.load('resources/moving/frame2.gif'), (50, 50)))
+    moving_sprites.append(pygame.transform.scale(pygame.image.load('resources/moving/frame3.gif'), (50, 50)))
+    bomb_img = pygame.transform.scale(pygame.image.load('resources/inventory/bomb.png'), (31, 31))
+    bomb_explosion = [pygame.transform.scale(pygame.image.load('resources/inventory/frame_0.png'), (31, 31)),
+                      pygame.transform.scale(pygame.image.load('resources/inventory/frame_1.png'), (31, 31)),
+                      pygame.transform.scale(pygame.image.load('resources/inventory/frame_2.png'), (31, 31)),
+                      pygame.transform.scale(pygame.image.load('resources/inventory/frame_3.png'), (31, 31))]
+    movement_speed = 2.083
+    teleport("resources/backdrop/alter/alter.gif",
+             [[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+              [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+              [0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0],
+              [0, 1, 0, 1, 1, 1, 1, 1, 0, 0, 1, 0],
+              [0, 1, 0, 1, 1, 0, 1, 1, 0, 0, 1, 0],
+              [0, 1, 0, 1, 1, 2, 1, 1, 0, 0, 1, 0],
+              [0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0],
+              [0, 1, 0, 0, 1, 1, 1, 1, 0, 0, 1, 0],
+              [0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+              [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+              [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 2, 2],
+              [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]],
+             600, 460)
+def holy_grail_teleport():
+    global idle_sprites, moving_sprites, bomb_explosion, bomb_img, movement_speed
+    idle_sprites.clear()
+    moving_sprites.clear()
+    bomb_explosion.clear()
+    idle_sprites = [pygame.transform.scale(pygame.image.load('resources/idle/frame0.gif'), (120, 120)),
+                    pygame.transform.scale(pygame.image.load('resources/idle/frame1.gif'), (120, 120)),
+                    pygame.transform.scale(pygame.image.load('resources/idle/frame2.gif'), (120, 120)),
+                    pygame.transform.scale(pygame.image.load('resources/idle/frame3.gif'), (120, 120))]
+    moving_sprites = [pygame.transform.scale(pygame.image.load('resources/moving/frame0.gif'), (120, 120)),
+                      pygame.transform.scale(pygame.image.load('resources/moving/frame1.gif'), (120, 120)),
+                      pygame.transform.scale(pygame.image.load('resources/moving/frame2.gif'), (120, 120)),
+                      pygame.transform.scale(pygame.image.load('resources/moving/frame3.gif'), (120, 120))]
+    bomb_img = pygame.transform.scale(pygame.image.load('resources/inventory/bomb.png'), (75, 75))
+    bomb_explosion = [pygame.transform.scale(pygame.image.load('resources/inventory/frame_0.png'), (75, 75)),
+                      pygame.transform.scale(pygame.image.load('resources/inventory/frame_1.png'), (75, 75)),
+                      pygame.transform.scale(pygame.image.load('resources/inventory/frame_2.png'), (75, 75)),
+                      pygame.transform.scale(pygame.image.load('resources/inventory/frame_3.png'), (75, 75))]
+    movement_speed = 5
+    teleport("resources/backdrop/holy_grail/frame_000_delay-0.04s.gif",
+             [[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+              [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+              [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+              [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+              [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+              [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+              [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+              [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+              [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+              [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+              [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+              [0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0]],
+             400, 500)
 while True:
     # Handle input events
     handle_input_events()
