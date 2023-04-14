@@ -7,5 +7,7 @@ One of the highlights of "Neco Arc's Adventure" is the range of different challe
 
 ![](https://github.com/yurippe777/Python-Collectable-Game/blob/main/demoGif/demo2.gif)
 
+
+
 To run this project, navigate to the Neco Arcs Adventure folder with the command line, and use the command 
 pip install -r requirements.txt
