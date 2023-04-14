@@ -6,3 +6,6 @@
 One of the highlights of "Neco Arc's Adventure" is the range of different challenges on offer. Players will need to use their wits and skills to overcome various obstacles, from tricky platforming sections to challenging combat encounters.
 
 ![](https://github.com/yurippe777/Python-Collectable-Game/blob/main/demoGif/demo2.gif)
+
+To run this project, navigate to the Neco Arcs Adventure folder with the command line, and use the command 
+pip install -r requirements.txt
