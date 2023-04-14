@@ -5,6 +5,7 @@ import pygame
 import math
 import json
 import random
+from pygame import mixer
 fruit_caught = 0
 fail_index = 0
 beam_attack = 0
@@ -23,6 +24,22 @@ frame_count = 0
 show_walkable = 0
 interaction = 0
 game_state = False
+music_paths = {
+    'christmas': 'resources/music/lobby.mp3',
+    'hub': 'resources/music/lobby.mp3'
+}
+# Starting the mixer
+mixer.init()
+
+# Loading the song
+mixer.music.load("resources/music/lobby.mp3")
+
+# Setting the volume
+mixer.music.set_volume(0.5)
+
+# Start playing the song
+mixer.music.play()
+
 # Initialize Pygame
 pygame.init()
 # Check if quest_flags.txt exists
@@ -56,40 +73,23 @@ screen = pygame.display.set_mode((screen_width, screen_height))
 clock = pygame.time.Clock()
 
 # Load the sprites
-idle_sprites = [pygame.transform.scale(pygame.image.load('resources/idle/frame0.gif'), (120, 120)),
-                pygame.transform.scale(pygame.image.load('resources/idle/frame1.gif'), (120, 120)),
-                pygame.transform.scale(pygame.image.load('resources/idle/frame2.gif'), (120, 120)),
-                pygame.transform.scale(pygame.image.load('resources/idle/frame3.gif'), (120, 120))]
-moving_sprites = [pygame.transform.scale(pygame.image.load('resources/moving/frame0.gif'), (120, 120)),
-                  pygame.transform.scale(pygame.image.load('resources/moving/frame1.gif'), (120, 120)),
-                  pygame.transform.scale(pygame.image.load('resources/moving/frame2.gif'), (120, 120)),
-                  pygame.transform.scale(pygame.image.load('resources/moving/frame3.gif'), (120, 120))]
+if quest_flags["holy_grail"] == False:
+    idle_sprites = [pygame.transform.scale(pygame.image.load(f'resources/idle/frame{i}.gif'), (120, 120)) for i in
+                    range(4)]
+else: idle_sprites = [pygame.transform.scale(pygame.image.load(f'resources/idle_2/frame{i}.gif'), (120, 120)) for i in range(4)]
+moving_sprites = [pygame.transform.scale(pygame.image.load(f'resources/moving/frame{i}.gif'), (120, 120)) for i in range(4)]
 background_frames = [pygame.image.load(f'resources/backdrop/christmas/frame{i}.gif') for i in range(5)]
 background_frames2 = [pygame.image.load(f'resources/backdrop/graveyard/frame_{i}.gif') for i in range(4)]
 background_frames3 = [pygame.image.load(f'resources/backdrop/holy_grail/frame_{i:03d}_delay-0.04s.gif') for i in range(108)]
-
 beams = [pygame.transform.scale(pygame.image.load(f'resources/inventory/beam_attack/frame{i}.png'), (300, 300)) for i in range(16)]
 ghost = [pygame.transform.scale(pygame.image.load(f'resources/npc/Ghost/frame{i}.png'), (300, 300)) for i in range(16)]
-knight_idle = [pygame.transform.scale(pygame.image.load('resources/npc/knight_idle/frame0.gif'), (250, 250)),
-               pygame.transform.scale(pygame.image.load('resources/npc/knight_idle/frame1.gif'), (250, 250)),
-               pygame.transform.scale(pygame.image.load('resources/npc/knight_idle/frame2.gif'), (250, 250)),
-               pygame.transform.scale(pygame.image.load('resources/npc/knight_idle/frame3.gif'), (250, 250)),]
+knight_idle = [pygame.transform.scale(pygame.image.load(f'resources/npc/knight_idle/frame{i}.gif'), (250, 250)) for i in range(4)]
 bomb_img = pygame.transform.scale(pygame.image.load('resources/inventory/bomb.png'),(75,75))
-bomb_explosion = [pygame.transform.scale(pygame.image.load('resources/inventory/frame_0.png'), (75, 75)),
-                  pygame.transform.scale(pygame.image.load('resources/inventory/frame_1.png'), (75, 75)),
-                  pygame.transform.scale(pygame.image.load('resources/inventory/frame_2.png'), (75, 75)),
-                  pygame.transform.scale(pygame.image.load('resources/inventory/frame_3.png'), (75, 75))]
-portal = [pygame.transform.scale(pygame.image.load('resources/inventory/tile0.png'), (150, 150)),
-                  pygame.transform.scale(pygame.image.load('resources/inventory/tile1.png'), (150, 150)),
-                  pygame.transform.scale(pygame.image.load('resources/inventory/tile2.png'), (150, 150)),
-                  pygame.transform.scale(pygame.image.load('resources/inventory/tile3.png'), (150, 150))]
+bomb_explosion = [pygame.transform.scale(pygame.image.load(f'resources/inventory/frame_{i}.png'), (75, 75)) for i in range(4)]
+portal = [pygame.transform.scale(pygame.image.load(f'resources/inventory/tile{i}.png'), (150, 150)) for i in range(4)]
 boulder = pygame.transform.scale(pygame.image.load('resources/map_objects/boulder.png'),(200,200))
-boating =[pygame.transform.scale(pygame.image.load('resources/boating/frame0.gif'), (120, 120)),
-          pygame.transform.scale(pygame.image.load('resources/boating/frame1.gif'), (120, 120)),]
-Slime = [pygame.transform.scale(pygame.image.load('resources/map_objects/frame0.png'), (75,75)),
-                  pygame.transform.scale(pygame.image.load('resources/map_objects/frame1.png'), (75, 75)),
-                  pygame.transform.scale(pygame.image.load('resources/map_objects/frame2.png'), (75, 75)),
-                  pygame.transform.scale(pygame.image.load('resources/map_objects/frame3.png'), (75, 75))]
+boating = [pygame.transform.scale(pygame.image.load(f'resources/boating/frame{i}.gif'), (120, 120)) for i in range(2)]
+Slime = [pygame.transform.scale(pygame.image.load(f'resources/map_objects/frame{i}.png'), (75, 75)) for i in range(4)]
 GoB = pygame.transform.scale(pygame.image.load('resources/inventory/portal_key.png'),(125,125))
 holy_grail = pygame.transform.scale(pygame.image.load('resources/map_objects/holy_grail.png'),(200,200))
 archer_frames = []
@@ -150,7 +150,7 @@ except FileNotFoundError:
 # Define a function to handle input events
 def handle_input_events():
     global move_left, move_right, move_up, move_down, last_direction, current_map, interaction, game_state,player_x,player_y, bomb_explosion, stale_player_x, stale_player_y
-    global stale_player_x, stale_player_y, GoB, stale_player_x2, stale_player_y2, portal, beam_attack
+    global stale_player_x, stale_player_y, GoB, stale_player_x2, stale_player_y2, portal, beam_attack, quest_flags, inventory
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             pygame.quit()
@@ -166,13 +166,29 @@ def handle_input_events():
                 move_up = True
             elif event.key == pygame.K_s:
                 move_down = True
-            elif event.key == pygame.K_b:
+            elif event.key == pygame.K_b and inventory["Bombs"] == True:
                 stale_player_x = player_x
                 stale_player_y = player_y
             elif stale_player_x != 0 and event.key == pygame.K_e:
                 bomb_interact()
+                # Load a sound effect
+                sound_effect = pygame.mixer.Sound("resources/music/bomb.wav")
+                # Play the sound effect over the music
+                sound_effect.play()
+            elif event.key == pygame.K_f and quest_flags["holy_grail"] == False and inventory["Beam"] == True and abs(player_x - 400) <= 50 and abs(player_y - 300) <= 50 and current_map == 'holygrail':
+                beam_attack = 1
+                quest_flags["holy_grail"] = True
+                # Load a sound effect
+                sound_effect = pygame.mixer.Sound("resources/music/win.wav")
+                # Play the sound effect over the music
+                sound_effect.play()
+                end_function()
             elif event.key == pygame.K_f and inventory["Beam"] == True:
                 beam_attack = 1
+                # Load a sound effect
+                sound_effect = pygame.mixer.Sound("resources/music/beam.wav")
+                # Play the sound effect over the music
+                sound_effect.play()
             elif event.key == pygame.K_e and interaction == 1 and current_map == 'hub':
                 rabbit_interact()
             elif event.key == pygame.K_e and interaction == 1 and current_map == 'city':
@@ -183,7 +199,11 @@ def handle_input_events():
                 ghost_interact()
             elif event.key == pygame.K_e and interaction == 1 and current_map == 'island':
                 inventory["GoB"] = True
-            elif event.key == pygame.K_e and interaction == 1 and current_map == 'holygrail':
+                # Load a sound effect
+                sound_effect = pygame.mixer.Sound("resources/music/win.wav")
+                # Play the sound effect over the music
+                sound_effect.play()
+            elif event.key == pygame.K_e and interaction == 1 and current_map == 'holygrail' and quest_flags['holy_grail'] == False:
                 holy_grail_interact()
             elif event.key == pygame.K_ESCAPE:
                 pause_menu()
@@ -200,7 +220,7 @@ def handle_input_events():
 
 # Define a function to update the game state
 def update():
-    global player_x, player_y, current_sprites, current_sprite_index, frame_count, background_image, background_frame_index, boating
+    global player_x, player_y, current_sprites, current_sprite_index, frame_count, background_image, background_frame_index, boating,music_paths
     global current_map, background_frames2, background_frames3
     tile_size_x = int(screen_width / COLS)
     tile_size_y = int(screen_height / ROWS)
@@ -307,7 +327,7 @@ def update():
 
 def draw():
     global background_image, bunny, interaction, game_state, current_map,knight_idle, npc_locations, stale_player_x, stale_player_y, bomb_det, counter, Slime, Slime_location
-    global x_ref,y_ref, GoB, stale_player_x2, stale_player_y2, portal,beams, move_up,move_right,move_left,move_down,last_direction,beam_start, ghost, holy_grail
+    global x_ref,y_ref, GoB, stale_player_x2, stale_player_y2, portal,beams, move_up,move_right,move_left,move_down,last_direction,beam_start, ghost, holy_grail, music_paths
     bunny_y = 330 + 5 * math.sin(pygame.time.get_ticks() / 200)
     if (current_map == 'christmas' or current_map == 'alter') and inventory["GoB"] == True:
         npc_maker(650,440,portal)
@@ -383,6 +403,8 @@ def bomb_interact():
     global bomb_det
     print("This is a bomb")
     bomb_det = 1
+def end_function():
+    print("The End")
 def holy_grail_interact():
     pygame.init()
 
@@ -471,6 +493,10 @@ def ghost_interact():
         pygame.display.flip()
         time.sleep(8)
         inventory['Beam'] = True
+        # Load a sound effect
+        sound_effect = pygame.mixer.Sound("resources/music/win.wav")
+        # Play the sound effect over the music
+        sound_effect.play()
 def ghost_interact2():
     global fruit_caught
     # Initialize game variables
@@ -594,6 +620,10 @@ def rabbit_interact():
         knight_comment3 = ""
         knight_challenge = ""
         inventory['Boat'] = True
+        # Load a sound effect
+        sound_effect = pygame.mixer.Sound("resources/music/win.wav")
+        # Play the sound effect over the music
+        sound_effect.play()
     # Set up font and text objects
     font = pygame.font.SysFont("Arial", 20)
     knight_name_text = font.render(knight_name, True, (255, 255, 255))
@@ -622,8 +652,8 @@ def elf_interact():
     # Set up initial variables
     knight_name = "Elven Archer"
     knight_comment = "I have stumbled upon quite a treasure, a bunny bag!"
-    knight_comment2 = "However, I cannot simply give it to you without first"
-    knight_comment3 = "ensuring that you are worthy of such a gift."
+    knight_comment2 = "However, I cannot simply give it to you without you first"
+    knight_comment3 = "proving to me that you are worthy of such a gift."
     knight_challenge = "If you want it, you must demonstrate your prowess with a bow."
 
     # Set up font and text objects
@@ -671,6 +701,10 @@ def elf_interact():
         time.sleep(8)
         quest_flags['Archery'] = True
         inventory['Bunny Bag'] = True
+        # Load a sound effect
+        sound_effect = pygame.mixer.Sound("resources/music/win.wav")
+        # Play the sound effect over the music
+        sound_effect.play()
 def elf_interact2():
         global balloons_popped
         # Set up the game variables
@@ -753,7 +787,10 @@ def elf_interact2():
                     if (x - bullet[0]) ** 2 + (y - bullet[1]) ** 2 <= (balloon_radius + bullet_radius) ** 2:
                         balloons[i] = (x, -300)
                         balloons_popped += 1
-                        #balloons.pop(i)
+                        # Load a sound effect
+                        sound_effect = pygame.mixer.Sound("resources/music/switch.wav")
+                        # Play the sound effect over the music
+                        sound_effect.play()
                         break
             # Remove bullets that are not on screen
             for i in range(len(bullets)):
@@ -867,6 +904,10 @@ def knight_interact():
         time.sleep(6)
         quest_flags['Knight of Honor'] = True
         inventory['Bombs'] = True
+        # Load a sound effect
+        sound_effect = pygame.mixer.Sound("resources/music/win.wav")
+        # Play the sound effect over the music
+        sound_effect.play()
 
 def knight_interact2():
     global my_score
@@ -923,6 +964,10 @@ def knight_interact2():
             ball_dy = ball_dy * random.uniform(0.8, 1.2)
             hits += 1
             my_score +=1
+            # Load a sound effect
+            sound_effect = pygame.mixer.Sound("resources/music/switch.wav")
+            # Play the sound effect over the music
+            sound_effect.play()
 
         # Check if the ball hit the wall
         if ball_y < 0 or ball_y > 580:
@@ -988,7 +1033,7 @@ def npc_maker(bunny_x, bunny_y, images):
         bunny_y = 500
     if images == portal or images == beams:
         interact_distance = 0
-    if images != boulder or images != Slime:
+    if images != boulder and images != Slime:
         # Check if player is near bunny
         if abs(player_x - bunny_x) < interact_distance and abs(player_y - bunny_y) < interact_distance:
             # Draw "Press E to interact" message above player's head
@@ -1018,13 +1063,13 @@ def npc_maker(bunny_x, bunny_y, images):
             flip_status = not flip_status  # Invert the flip status
 
 def pause_menu():
-    global game_state, inventory, quest_flags
+    global game_state, inventory, quest_flags, current_map, player_x,player_y
 
     # Set game state to paused
     game_state = False
 
     # Create a list of menu options
-    menu_options = ["Inventory", "Save", "New Game"]
+    menu_options = ["Pause Menu", "Save", "New Game"]
     selected_option = 0
     backdrop = pygame.image.load('resources/backdrop/loading/frame0.png')
     screen.blit(backdrop, (0, 0))
@@ -1050,7 +1095,7 @@ def pause_menu():
                 elif event.key == pygame.K_RETURN or event.key == pygame.K_SPACE:
                     # Execute the selected option
                     if selected_option == 0:
-                        print("Opening inventory...")
+                        pass
                     elif selected_option == 1:
                         print("Saving game...")
                         with open("inventory.txt", "w") as f:
@@ -1061,7 +1106,9 @@ def pause_menu():
                         print("Starting new game...")
                         quest_flags = {"Knight of Honor": False, "Boulder": False,"Archery": False, "Slime": False,"holy_grail": False}
                         inventory = {"Bombs": False, "Bunny Bag": False, "Boat": False, "GoB": False, "Beam": False}
-
+                        hub_teleport()
+                        player_x = 75
+                        player_y = 110
 
         # Clear the screen
        # screen.fill((0, 0, 0))
@@ -1088,19 +1135,19 @@ def teleport(new_bg_path, new_walkable_tiles, new_player_x, new_player_y):
     stale_player_x = 0
     # Load the new background image
     if (current_map == 'christmas' and player_x < 410): current_map = 'hub'
-    elif(current_map == 'holygrail'): current_map = 'alter'
-    elif(current_map == 'alter' and player_y > 400): current_map = 'christmas'
-    elif(current_map == 'alter' and player_y < 400): current_map = 'holygrail'
-    elif(current_map == 'christmas' and player_x > 410): current_map = 'alter'
-    elif (current_map == 'hub' and player_x > 600):current_map = 'graveyard'
-    elif (current_map == 'hub' and player_y < 50): current_map = 'island'
+    elif(current_map == 'holygrail'): current_map = 'alter';mixer.music.load("resources/music/cipher.mp3");mixer.music.set_volume(0.5);mixer.music.play()
+    elif(current_map == 'alter' and player_y > 400): current_map = 'christmas';mixer.music.load("resources/music/lobby.mp3");mixer.music.set_volume(0.5);mixer.music.play()
+    elif(current_map == 'alter' and player_y < 400): current_map = 'holygrail';mixer.music.load("resources/music/lurking.mp3");mixer.music.set_volume(0.5);mixer.music.play()
+    elif(current_map == 'christmas' and player_x > 410): current_map = 'alter';mixer.music.load("resources/music/cipher.mp3");mixer.music.set_volume(0.5);mixer.music.play()
+    elif (current_map == 'hub' and player_x > 600):current_map = 'graveyard';mixer.music.load("resources/music/graveyard.mp3");mixer.music.set_volume(0.5);mixer.music.play()
+    elif (current_map == 'hub' and player_y < 50): current_map = 'island';mixer.music.load("resources/music/cipher.mp3");mixer.music.set_volume(0.5);mixer.music.play()
     elif (current_map == 'hub' and player_y < 300): current_map = 'christmas'
-    elif (current_map == 'hub' and player_x > 100): current_map = 'cave'
-    elif (current_map == 'hub' and player_x < 70): current_map = 'city'
-    elif (current_map == 'graveyard'): current_map = 'hub'
-    elif (current_map == 'city'): current_map = 'hub'
-    elif (current_map == 'cave'): current_map = 'hub'
-    elif (current_map == 'island'): current_map = 'hub'
+    elif (current_map == 'hub' and player_x > 100): current_map = 'cave';mixer.music.load("resources/music/cipher.mp3");mixer.music.set_volume(0.5);mixer.music.play()
+    elif (current_map == 'hub' and player_x < 70): current_map = 'city';mixer.music.load("resources/music/Glory.mp3");mixer.music.set_volume(0.5);mixer.music.play()
+    elif (current_map == 'graveyard'): current_map = 'hub';mixer.music.load("resources/music/lobby.mp3");mixer.music.set_volume(0.5);mixer.music.play()
+    elif (current_map == 'city'): current_map = 'hub';mixer.music.load("resources/music/lobby.mp3");mixer.music.set_volume(0.5);mixer.music.play()
+    elif (current_map == 'cave'): current_map = 'hub';mixer.music.load("resources/music/lobby.mp3");mixer.music.set_volume(0.5);mixer.music.play()
+    elif (current_map == 'island'): current_map = 'hub';mixer.music.load("resources/music/lobby.mp3");mixer.music.set_volume(0.5);mixer.music.play()
     if (current_map != 'christmas'):
         del background_image
         background_image = pygame.image.load(new_bg_path).convert()
@@ -1111,7 +1158,7 @@ def teleport(new_bg_path, new_walkable_tiles, new_player_x, new_player_y):
     player_x = new_player_x
     player_y = new_player_y
 def hub_teleport():
-    global moving_sprites, idle_sprites, movement_speed, bomb_explosion,bomb_img
+    global moving_sprites, idle_sprites, movement_speed, bomb_explosion,bomb_img, quest_flags
     if current_map == "city":
         x, y = 100, 350
     elif current_map == 'graveyard':
@@ -1120,38 +1167,36 @@ def hub_teleport():
         x, y = 150, 450
         idle_sprites.clear()
         moving_sprites.clear()
-        idle_sprites = [pygame.transform.scale(pygame.image.load('resources/idle/frame0.gif'), (120, 120)),
-                        pygame.transform.scale(pygame.image.load('resources/idle/frame1.gif'), (120, 120)),
-                        pygame.transform.scale(pygame.image.load('resources/idle/frame2.gif'), (120, 120)),
-                        pygame.transform.scale(pygame.image.load('resources/idle/frame3.gif'), (120, 120))]
-        moving_sprites = [pygame.transform.scale(pygame.image.load('resources/moving/frame0.gif'), (120, 120)),
-                          pygame.transform.scale(pygame.image.load('resources/moving/frame1.gif'), (120, 120)),
-                          pygame.transform.scale(pygame.image.load('resources/moving/frame2.gif'), (120, 120)),
-                          pygame.transform.scale(pygame.image.load('resources/moving/frame3.gif'), (120, 120))]
+        if quest_flags["holy_grail"] == False:
+            idle_sprites = [pygame.transform.scale(pygame.image.load(f'resources/idle/frame{i}.gif'), (120, 120)) for i
+                            in
+                            range(4)]
+        else:
+            idle_sprites = [pygame.transform.scale(pygame.image.load(f'resources/idle_2/frame{i}.gif'), (120, 120)) for
+                            i in range(4)]
+        moving_sprites = [pygame.transform.scale(pygame.image.load(f'resources/moving/frame{i}.gif'), (120, 120)) for i
+                          in range(4)]
         bomb_img = pygame.transform.scale(pygame.image.load('resources/inventory/bomb.png'), (75, 75))
-        bomb_explosion = [pygame.transform.scale(pygame.image.load('resources/inventory/frame_0.png'), (75, 75)),
-                          pygame.transform.scale(pygame.image.load('resources/inventory/frame_1.png'), (75, 75)),
-                          pygame.transform.scale(pygame.image.load('resources/inventory/frame_2.png'), (75, 75)),
-                          pygame.transform.scale(pygame.image.load('resources/inventory/frame_3.png'), (75, 75))]
+        bomb_explosion = [pygame.transform.scale(pygame.image.load(f'resources/inventory/frame_{i}.png'), (75, 75)) for
+                          i in range(4)]
 
         movement_speed = 5
     elif current_map == "island":
         x, y = 500, 1
         idle_sprites.clear()
         moving_sprites.clear()
-        idle_sprites = [pygame.transform.scale(pygame.image.load('resources/idle/frame0.gif'), (120, 120)),
-                        pygame.transform.scale(pygame.image.load('resources/idle/frame1.gif'), (120, 120)),
-                        pygame.transform.scale(pygame.image.load('resources/idle/frame2.gif'), (120, 120)),
-                        pygame.transform.scale(pygame.image.load('resources/idle/frame3.gif'), (120, 120))]
-        moving_sprites = [pygame.transform.scale(pygame.image.load('resources/moving/frame0.gif'), (120, 120)),
-                          pygame.transform.scale(pygame.image.load('resources/moving/frame1.gif'), (120, 120)),
-                          pygame.transform.scale(pygame.image.load('resources/moving/frame2.gif'), (120, 120)),
-                          pygame.transform.scale(pygame.image.load('resources/moving/frame3.gif'), (120, 120))]
+        if quest_flags["holy_grail"] == False:
+            idle_sprites = [pygame.transform.scale(pygame.image.load(f'resources/idle/frame{i}.gif'), (120, 120)) for i
+                            in
+                            range(4)]
+        else:
+            idle_sprites = [pygame.transform.scale(pygame.image.load(f'resources/idle_2/frame{i}.gif'), (120, 120)) for
+                            i in range(4)]
+        moving_sprites = [pygame.transform.scale(pygame.image.load(f'resources/moving/frame{i}.gif'), (120, 120)) for i
+                          in range(4)]
         bomb_img = pygame.transform.scale(pygame.image.load('resources/inventory/bomb.png'), (75, 75))
-        bomb_explosion = [pygame.transform.scale(pygame.image.load('resources/inventory/frame_0.png'), (75, 75)),
-                          pygame.transform.scale(pygame.image.load('resources/inventory/frame_1.png'), (75, 75)),
-                          pygame.transform.scale(pygame.image.load('resources/inventory/frame_2.png'), (75, 75)),
-                          pygame.transform.scale(pygame.image.load('resources/inventory/frame_3.png'), (75, 75))]
+        bomb_explosion = [pygame.transform.scale(pygame.image.load(f'resources/inventory/frame_{i}.png'), (75, 75)) for
+                          i in range(4)]
         movement_speed = 5
     else:
         x, y = 75, 110
@@ -1177,19 +1222,17 @@ def house_teleport():
     idle_sprites.clear()
     moving_sprites.clear()
     bomb_explosion.clear()
-    idle_sprites = [pygame.transform.scale(pygame.image.load('resources/idle/frame0.gif'), (120, 120)),
-                    pygame.transform.scale(pygame.image.load('resources/idle/frame1.gif'), (120, 120)),
-                    pygame.transform.scale(pygame.image.load('resources/idle/frame2.gif'), (120, 120)),
-                    pygame.transform.scale(pygame.image.load('resources/idle/frame3.gif'), (120, 120))]
-    moving_sprites = [pygame.transform.scale(pygame.image.load('resources/moving/frame0.gif'), (120, 120)),
-                      pygame.transform.scale(pygame.image.load('resources/moving/frame1.gif'), (120, 120)),
-                      pygame.transform.scale(pygame.image.load('resources/moving/frame2.gif'), (120, 120)),
-                      pygame.transform.scale(pygame.image.load('resources/moving/frame3.gif'), (120, 120))]
+    if quest_flags["holy_grail"] == False:
+        idle_sprites = [pygame.transform.scale(pygame.image.load(f'resources/idle/frame{i}.gif'), (120, 120)) for i in
+                        range(4)]
+    else:
+        idle_sprites = [pygame.transform.scale(pygame.image.load(f'resources/idle_2/frame{i}.gif'), (120, 120)) for i in
+                        range(4)]
+    moving_sprites = [pygame.transform.scale(pygame.image.load(f'resources/moving/frame{i}.gif'), (120, 120)) for i in
+                      range(4)]
     bomb_img = pygame.transform.scale(pygame.image.load('resources/inventory/bomb.png'), (75, 75))
-    bomb_explosion = [pygame.transform.scale(pygame.image.load('resources/inventory/frame_0.png'), (75, 75)),
-                      pygame.transform.scale(pygame.image.load('resources/inventory/frame_1.png'), (75, 75)),
-                      pygame.transform.scale(pygame.image.load('resources/inventory/frame_2.png'), (75, 75)),
-                      pygame.transform.scale(pygame.image.load('resources/inventory/frame_3.png'), (75, 75))]
+    bomb_explosion = [pygame.transform.scale(pygame.image.load(f'resources/inventory/frame_{i}.png'), (75, 75)) for i in
+                      range(4)]
     movement_speed = 5
     teleport("resources/backdrop/christmas/frame0.png",
              [
@@ -1229,19 +1272,17 @@ def cave_teleport():
     bomb_explosion.clear()
     bomb_img = 0
     # Load the shrunken player sprites
-    idle_sprites.append(pygame.transform.scale(pygame.image.load('resources/idle/frame0.gif'), (50, 50)))
-    idle_sprites.append(pygame.transform.scale(pygame.image.load('resources/idle/frame1.gif'), (50, 50)))
-    idle_sprites.append(pygame.transform.scale(pygame.image.load('resources/idle/frame2.gif'), (50, 50)))
-    idle_sprites.append(pygame.transform.scale(pygame.image.load('resources/idle/frame3.gif'), (50, 50)))
-    moving_sprites.append(pygame.transform.scale(pygame.image.load('resources/moving/frame0.gif'), (50, 50)))
-    moving_sprites.append(pygame.transform.scale(pygame.image.load('resources/moving/frame1.gif'), (50, 50)))
-    moving_sprites.append(pygame.transform.scale(pygame.image.load('resources/moving/frame2.gif'), (50, 50)))
-    moving_sprites.append(pygame.transform.scale(pygame.image.load('resources/moving/frame3.gif'), (50, 50)))
+    if quest_flags["holy_grail"] == False:
+        idle_sprites = [pygame.transform.scale(pygame.image.load(f'resources/idle/frame{i}.gif'), (50, 50)) for i in
+                        range(4)]
+    else:
+        idle_sprites = [pygame.transform.scale(pygame.image.load(f'resources/idle_2/frame{i}.gif'), (50, 50)) for i in
+                        range(4)]
+    moving_sprites = [pygame.transform.scale(pygame.image.load(f'resources/moving/frame{i}.gif'), (50, 50)) for i in
+                      range(4)]
     bomb_img = pygame.transform.scale(pygame.image.load('resources/inventory/bomb.png'), (31, 31))
-    bomb_explosion = [pygame.transform.scale(pygame.image.load('resources/inventory/frame_0.png'), (31, 31)),
-                      pygame.transform.scale(pygame.image.load('resources/inventory/frame_1.png'), (31, 31)),
-                      pygame.transform.scale(pygame.image.load('resources/inventory/frame_2.png'), (31, 31)),
-                      pygame.transform.scale(pygame.image.load('resources/inventory/frame_3.png'), (31, 31))]
+    bomb_explosion = [pygame.transform.scale(pygame.image.load(f'resources/inventory/frame_{i}.png'), (31, 31)) for i in
+                      range(4)]
     movement_speed = 2.083
     # Teleport the player
     teleport("resources/backdrop/cave/frame0.png",
@@ -1266,19 +1307,17 @@ def island_teleport():
     moving_sprites.clear()
 
     # Load the shrunken player sprites
-    idle_sprites.append(pygame.transform.scale(pygame.image.load('resources/idle/frame0.gif'), (60, 60)))
-    idle_sprites.append(pygame.transform.scale(pygame.image.load('resources/idle/frame1.gif'), (60, 60)))
-    idle_sprites.append(pygame.transform.scale(pygame.image.load('resources/idle/frame2.gif'), (60, 60)))
-    idle_sprites.append(pygame.transform.scale(pygame.image.load('resources/idle/frame3.gif'), (60, 60)))
-    moving_sprites.append(pygame.transform.scale(pygame.image.load('resources/moving/frame0.gif'), (60, 60)))
-    moving_sprites.append(pygame.transform.scale(pygame.image.load('resources/moving/frame1.gif'), (60, 60)))
-    moving_sprites.append(pygame.transform.scale(pygame.image.load('resources/moving/frame2.gif'), (60, 60)))
-    moving_sprites.append(pygame.transform.scale(pygame.image.load('resources/moving/frame3.gif'), (60, 60)))
+    if quest_flags["holy_grail"] == False:
+        idle_sprites = [pygame.transform.scale(pygame.image.load(f'resources/idle/frame{i}.gif'), (60, 60)) for i in
+                        range(4)]
+    else:
+        idle_sprites = [pygame.transform.scale(pygame.image.load(f'resources/idle_2/frame{i}.gif'), (60, 60)) for i in
+                        range(4)]
+    moving_sprites = [pygame.transform.scale(pygame.image.load(f'resources/moving/frame{i}.gif'), (60, 60)) for i in
+                      range(4)]
     bomb_img = pygame.transform.scale(pygame.image.load('resources/inventory/bomb.png'), (37.5, 37.5))
-    bomb_explosion = [pygame.transform.scale(pygame.image.load('resources/inventory/frame_0.png'), (37.5, 37.5)),
-                      pygame.transform.scale(pygame.image.load('resources/inventory/frame_1.png'), (37.5, 37.5)),
-                      pygame.transform.scale(pygame.image.load('resources/inventory/frame_2.png'), (37.5, 37.5)),
-                      pygame.transform.scale(pygame.image.load('resources/inventory/frame_3.png'), (37.5, 37.5))]
+    bomb_explosion = [pygame.transform.scale(pygame.image.load(f'resources/inventory/frame_{i}.png'), (37.5, 37.5)) for i in
+                      range(4)]
     movement_speed = 2.5
     teleport("resources/backdrop/island/frame0.png",
         [[3, 4, 1, 1, 1, 1, 1, 1, 1, 1, 4, 3],
@@ -1316,19 +1355,17 @@ def alter_teleport():
     bomb_explosion.clear()
     bomb_img = 0
     # Load the shrunken player sprites
-    idle_sprites.append(pygame.transform.scale(pygame.image.load('resources/idle/frame0.gif'), (50, 50)))
-    idle_sprites.append(pygame.transform.scale(pygame.image.load('resources/idle/frame1.gif'), (50, 50)))
-    idle_sprites.append(pygame.transform.scale(pygame.image.load('resources/idle/frame2.gif'), (50, 50)))
-    idle_sprites.append(pygame.transform.scale(pygame.image.load('resources/idle/frame3.gif'), (50, 50)))
-    moving_sprites.append(pygame.transform.scale(pygame.image.load('resources/moving/frame0.gif'), (50, 50)))
-    moving_sprites.append(pygame.transform.scale(pygame.image.load('resources/moving/frame1.gif'), (50, 50)))
-    moving_sprites.append(pygame.transform.scale(pygame.image.load('resources/moving/frame2.gif'), (50, 50)))
-    moving_sprites.append(pygame.transform.scale(pygame.image.load('resources/moving/frame3.gif'), (50, 50)))
+    if quest_flags["holy_grail"] == False:
+        idle_sprites = [pygame.transform.scale(pygame.image.load(f'resources/idle/frame{i}.gif'), (50, 50)) for i in
+                        range(4)]
+    else:
+        idle_sprites = [pygame.transform.scale(pygame.image.load(f'resources/idle_2/frame{i}.gif'), (50, 50)) for i in
+                        range(4)]
+    moving_sprites = [pygame.transform.scale(pygame.image.load(f'resources/moving/frame{i}.gif'), (50, 50)) for i in
+                      range(4)]
     bomb_img = pygame.transform.scale(pygame.image.load('resources/inventory/bomb.png'), (31, 31))
-    bomb_explosion = [pygame.transform.scale(pygame.image.load('resources/inventory/frame_0.png'), (31, 31)),
-                      pygame.transform.scale(pygame.image.load('resources/inventory/frame_1.png'), (31, 31)),
-                      pygame.transform.scale(pygame.image.load('resources/inventory/frame_2.png'), (31, 31)),
-                      pygame.transform.scale(pygame.image.load('resources/inventory/frame_3.png'), (31, 31))]
+    bomb_explosion = [pygame.transform.scale(pygame.image.load(f'resources/inventory/frame_{i}.png'), (31, 31)) for i in
+                      range(4)]
     movement_speed = 2.083
     teleport("resources/backdrop/alter/alter.gif",
              [[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -1349,19 +1386,17 @@ def holy_grail_teleport():
     idle_sprites.clear()
     moving_sprites.clear()
     bomb_explosion.clear()
-    idle_sprites = [pygame.transform.scale(pygame.image.load('resources/idle/frame0.gif'), (120, 120)),
-                    pygame.transform.scale(pygame.image.load('resources/idle/frame1.gif'), (120, 120)),
-                    pygame.transform.scale(pygame.image.load('resources/idle/frame2.gif'), (120, 120)),
-                    pygame.transform.scale(pygame.image.load('resources/idle/frame3.gif'), (120, 120))]
-    moving_sprites = [pygame.transform.scale(pygame.image.load('resources/moving/frame0.gif'), (120, 120)),
-                      pygame.transform.scale(pygame.image.load('resources/moving/frame1.gif'), (120, 120)),
-                      pygame.transform.scale(pygame.image.load('resources/moving/frame2.gif'), (120, 120)),
-                      pygame.transform.scale(pygame.image.load('resources/moving/frame3.gif'), (120, 120))]
+    if quest_flags["holy_grail"] == False:
+        idle_sprites = [pygame.transform.scale(pygame.image.load(f'resources/idle/frame{i}.gif'), (120, 120)) for i in
+                        range(4)]
+    else:
+        idle_sprites = [pygame.transform.scale(pygame.image.load(f'resources/idle_2/frame{i}.gif'), (120, 120)) for i in
+                        range(4)]
+    moving_sprites = [pygame.transform.scale(pygame.image.load(f'resources/moving/frame{i}.gif'), (120, 120)) for i in
+                      range(4)]
     bomb_img = pygame.transform.scale(pygame.image.load('resources/inventory/bomb.png'), (75, 75))
-    bomb_explosion = [pygame.transform.scale(pygame.image.load('resources/inventory/frame_0.png'), (75, 75)),
-                      pygame.transform.scale(pygame.image.load('resources/inventory/frame_1.png'), (75, 75)),
-                      pygame.transform.scale(pygame.image.load('resources/inventory/frame_2.png'), (75, 75)),
-                      pygame.transform.scale(pygame.image.load('resources/inventory/frame_3.png'), (75, 75))]
+    bomb_explosion = [pygame.transform.scale(pygame.image.load(f'resources/inventory/frame_{i}.png'), (75, 75)) for i in
+                      range(4)]
     movement_speed = 5
     teleport("resources/backdrop/holy_grail/frame_000_delay-0.04s.gif",
              [[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
