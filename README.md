@@ -11,5 +11,5 @@ One of the highlights of "Neco Arc's Adventure" is the range of different challe
 
 To run this project, navigate to the Neco Arcs Adventure folder with the command line, and use the command 
 
-**pip install -r requirements.txt
-**
+pip install -r requirements.txt
+
