@@ -1,4 +1,4 @@
-# Python-Collectable-Game
+# Neco Arc's Adventure
 "Neco Arc's Adventure" is an exciting game that takes you on a thrilling journey with the titular character, Neco Arc. As you play through the game, you'll embark on various quests and challenges, all in a bid to save the world from impending doom.
 
 ![](https://github.com/yurippe777/Python-Collectable-Game/blob/main/demoGif/demo1.gif)
